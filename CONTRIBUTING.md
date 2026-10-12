@@ -17,7 +17,7 @@ Thank you for helping build a free, private PDF editor for everyone.
 
 ```bash
 # Rust stable, Node 22, plus Tauri's OS prerequisites (see README)
-cd openpdf-studio/app && npm ci
+cd app && npm ci
 npx tauri dev
 ```
 

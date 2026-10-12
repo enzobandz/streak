@@ -16,7 +16,7 @@
 ## Components
 
 ```
-openpdf-studio/
+streak/  (OpenPDF Studio)
 ├── crates/
 │   ├── opdf-core/          Rust document engine (no UI, fully unit-tested)
 │   │   ├── load.rs         safe parsing, decryption, permissions, re-encryption

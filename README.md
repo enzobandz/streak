@@ -43,8 +43,8 @@ them. Each has a concrete design in [docs/ROADMAP.md](docs/ROADMAP.md).
 ## Install
 
 Pre-built installers are produced by CI for every push (`openpdf-studio-<OS>`
-artifacts of the **OpenPDF Studio** workflow) and attached to draft releases
-for tags `openpdf-v*`. Builds are unsigned unless signing secrets are
+artifacts of the **CI** workflow) and attached to draft releases
+for tags `v*`. Builds are unsigned unless signing secrets are
 configured, so Windows SmartScreen and macOS Gatekeeper will warn — verify the
 published SHA-256 checksums.
 
@@ -56,7 +56,7 @@ Requirements: [Rust](https://rustup.rs) (stable), [Node.js 22](https://nodejs.or
 `libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev` on Linux).
 
 ```bash
-cd openpdf-studio/app
+cd app
 npm ci
 npx tauri dev          # run in development mode
 npx tauri build        # installers in ../target/release/bundle/

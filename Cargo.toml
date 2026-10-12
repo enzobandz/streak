@@ -11,7 +11,7 @@ version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
 rust-version = "1.89"
-repository = "https://github.com/openpdf-studio/openpdf-studio"
+repository = "https://github.com/enzobandz/streak"
 authors = ["OpenPDF Studio contributors"]
 
 [workspace.dependencies]
