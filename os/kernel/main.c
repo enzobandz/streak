@@ -33,7 +33,7 @@ static void text_error(const char *msg) {
     for (int i = 0; msg[i] && i < 80 * 25; i++) vga[80 * 2 + 2 + i] = 0x1F00 | (uint8_t)msg[i];
 }
 static void fb_error(fb_info_t *fb, const char *msg) {
-    if (fb->bpp != 32) return;
+    if (fb->bpp != 32 || !fb->addr) return;
     surface_t s = {(uint32_t *)fb->addr, (int)fb->width, (int)fb->height, (int)(fb->pitch / 4)};
     clip_reset(&s);
     fill_rect(&s, mkrect(0, 0, s.w, s.h), RGB(0x12, 0x1A, 0x3A));
@@ -88,6 +88,10 @@ void kmain(uint32_t magic, uint32_t mbi) {
             uint32_t esz = ((uint32_t *)p)[2];
             for (uint8_t *e = p + 16; e + 24 <= p + size; e += esz)
                 if (*(uint32_t *)(e + 16) == 1) consider(*(uint64_t *)e, *(uint64_t *)e + *(uint64_t *)(e + 8));
+        } else if (type == 1) { /* kernel command line */
+            const char *cl = (const char *)(p + 8);
+            for (const char *q = cl; *q; q++)
+                if (!strncmp(q, "nousb", 5) && (q == cl || q[-1] == ' ')) g_cmdline_nousb = 1;
         } else if (type == 14 || type == 15) { /* ACPI RSDP copy */
             acpi_set_rsdp((uintptr_t)(p + 8));
         }
@@ -95,13 +99,13 @@ void kmain(uint32_t magic, uint32_t mbi) {
     }
     klog("fb %ux%u bpp=%u pitch=%u at %x; heap %x-%x\n", fb.width, fb.height, fb.bpp, fb.pitch, (uint32_t)fb_addr, (uint32_t)best_lo, (uint32_t)best_hi);
     if (!fb_addr || !fb.width) { text_error("StreakOS needs a graphics mode. Boot it with GRUB from the StreakOS ISO."); return; }
-    if (fb_addr + (uint64_t)fb.pitch * fb.height > 0xFFFFFFFFull) { klog("framebuffer above 4 GiB is not supported\n"); return; }
-    fb.addr = (uintptr_t)fb_addr;
+
     if (fb.bpp != 32 && fb.bpp != 24 && fb.bpp != 16) {
         klog("unsupported framebuffer format (%u bpp)\n", fb.bpp);
         return;
     }
-    uint64_t need = (uint64_t)fb.width * fb.height * 4 * 3 + (20u << 20);
+    if (fb_addr + (uint64_t)fb.pitch * fb.height <= 0xFFFFFFFFull) fb.addr = (uintptr_t)fb_addr; /* for error screens */
+    uint64_t need = (uint64_t)fb.width * fb.height * 4 * 3 + (20u << 20) + (16u << 20);
     if (best_hi - best_lo < need) {
         char msg[96];
         ksnprintf(msg, sizeof msg, "StreakOS needs at least %u MiB of RAM at this resolution.", (unsigned)(need >> 20) + 4);
@@ -110,6 +114,16 @@ void kmain(uint32_t magic, uint32_t mbi) {
         return;
     }
     uintptr_t mem_lo = (uintptr_t)best_lo, mem_hi = (uintptr_t)best_hi;
+    /* Reserve the top of the RAM range as a paging window for device memory
+     * above 4 GiB (64-bit BARs, and the framebuffer if it lives up there). */
+    uint64_t fb_size = (uint64_t)fb.pitch * fb.height;
+    size_t win = 16u << 20;
+    if (fb_addr + fb_size > 0xFFFFFFFFull) win += (size_t)((fb_size + (4u << 20)) & ~0x1FFFFFull);
+    uintptr_t win_base = (mem_hi - win) & ~0x1FFFFFu;
+    if (win_base > mem_lo && paging_init(win_base, win)) mem_hi = win_base;
+    void *fbp = map_mmio(fb_addr, (size_t)fb_size);
+    if (!fbp) { klog("framebuffer at %x%08x cannot be mapped\n", (uint32_t)(fb_addr >> 32), (uint32_t)fb_addr); return; }
+    fb.addr = (uintptr_t)fbp;
     heap_init(mem_lo, mem_hi);
     gdt_init();
     acpi_init();
@@ -123,6 +137,8 @@ void kmain(uint32_t magic, uint32_t mbi) {
     fs_init();
     boot_splash(35);
     shell_init(); /* applies saved theme and wallpaper */
+    boot_splash(70);
+    usb_init();
     boot_splash(100);
     wm_init();
 
@@ -143,6 +159,7 @@ void kmain(uint32_t magic, uint32_t mbi) {
             frames++;
             if (now - fps_t >= 1000) { g_fps = frames * 1000 / (now - fps_t); frames = 0; fps_t = now; }
         }
+        usb_poll();
         hlt();
     }
 }

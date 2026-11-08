@@ -7,7 +7,7 @@ static void mouse_byte(uint8_t b);
 static key_event_t kq[128];
 static volatile int kq_head, kq_tail;
 static int mods, extended;
-static int caps_lock, num_lock = 1;
+static int caps_lock, num_lock = 1, ps2_present = 1;
 static volatile int leds_dirty = 1;
 
 static const char map_lo[128] = {
@@ -96,6 +96,7 @@ static void kbd_byte(uint8_t sc) {
  * the keyboard's ACK bytes can be consumed here instead of by the IRQ handler. */
 static void update_leds(void) {
     leds_dirty = 0;
+    if (!ps2_present) return;
     uint8_t v = (caps_lock ? 4 : 0) | (num_lock ? 2 : 0);
     __asm__ volatile("pushf; cli");
     for (int pass = 0; pass < 2; pass++) {
@@ -141,7 +142,20 @@ static void kbd_irq(regs_t *r) {
     }
 }
 
+/* Scancodes from USB keyboards enter the same decoder as PS/2 ones; interrupts
+ * are masked so the PS/2 IRQ cannot interleave with a half-pushed event. */
+void input_scancode(uint16_t sc) {
+    uint32_t fl;
+    __asm__ volatile("pushf; pop %0; cli" : "=r"(fl));
+    if (sc >> 8) kbd_byte(0xE0); /* extended key: prefix and code go in together */
+    kbd_byte(sc & 0xFF);
+    __asm__ volatile("push %0; popf" ::"r"(fl) : "memory", "cc");
+}
+int input_lock_state(void) { return (num_lock ? 1 : 0) | (caps_lock ? 2 : 0); }
+
 void keyboard_init(void) {
+    /* no i8042 at all (some UEFI-only PCs): reads float to 0xFF */
+    if (inb(0x64) == 0xFF) { ps2_present = 0; klog("ps2: no controller\n"); return; }
     while (inb(0x64) & 1) inb(0x60);
     irq_set_handler(1, kbd_irq);
 }
@@ -230,6 +244,7 @@ static void mouse_irq(regs_t *r) {
 }
 
 void mouse_init(void) {
+    if (!ps2_present) { vm_abs = vmmouse_init(); if (vm_abs) irq_set_handler(12, mouse_irq); return; }
     ps2_wait_write(); outb(0x64, 0xA8); /* enable aux port */
     ps2_wait_write(); outb(0x64, 0x20);
     ps2_wait_read(); uint8_t cfg = inb(0x60);
@@ -252,6 +267,13 @@ void mouse_init(void) {
     vm_abs = vmmouse_init();
     klog("mouse: ps/2 id=%u, absolute vmmouse=%d\n", id, vm_abs);
     irq_set_handler(12, mouse_irq);
+}
+
+void input_mouse(mouse_event_t *e) {
+    uint32_t fl;
+    __asm__ volatile("pushf; pop %0; cli" : "=r"(fl));
+    push_mouse(e);
+    __asm__ volatile("push %0; popf" ::"r"(fl) : "memory", "cc");
 }
 
 int mouse_poll(mouse_event_t *ev) {

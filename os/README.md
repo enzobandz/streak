@@ -32,6 +32,9 @@ this folder and were written for StreakOS.
 * **Files and settings that persist.** With a virtual hard disk attached,
   StreakOS keeps your files, theme, accent, wallpaper and animation speed
   across reboots (see [Storage](#storage)).
+* **USB keyboards, mice and tablets** through its own USB 3 (xHCI) driver,
+  including devices behind hubs and plugging/unplugging while running. PS/2
+  keyboards and mice work too.
 * **Seamless mouse in VMs.** StreakOS speaks the VMware/QEMU/VirtualBox
   absolute-pointer protocol, so the cursor follows your Windows mouse without
   being captured. It falls back to a normal PS/2 mouse with acceleration
@@ -72,10 +75,13 @@ Get `streakos.iso`: download the **streakos-iso** artifact from the
 ### VirtualBox (easiest)
 1. *New* → Type **Other**, Version **Other/Unknown**, 256 MB RAM.
    Let it create a small virtual hard disk (any size from 4 MB): StreakOS keeps
-   your files there. The disk must be on the **IDE** controller, which is the
-   default for this OS type.
+   your files there. IDE and SATA controllers both work.
 2. *Settings → Display*: Graphics Controller **VBoxVGA** or **VMSVGA**, 16 MB+ video memory.
 3. *Settings → Storage*: attach `streakos.iso` to the optical drive. Start.
+
+Mouse and keyboard work with VirtualBox's defaults (PS/2 with seamless mouse
+integration), and also with *Settings → USB → USB 3.0 (xHCI) Controller* and
+a USB tablet.
 
 At boot a menu offers the default resolution (1280×800), Full HD, 1024×768
 and a safe 800×600 mode. It starts the default after 3 seconds.
@@ -94,13 +100,15 @@ drives) and boot the ISO from its DVD drive.
 ### Real hardware (USB stick)
 Write the ISO with [Rufus](https://rufus.ie) in **DD image** mode, disable
 Secure Boot, and boot from USB. The ISO boots in both UEFI and legacy BIOS mode.
-StreakOS needs PS/2 input or the firmware's USB legacy emulation for keyboard
-and mouse. Many laptops with only USB input won't respond yet (see
-limitations).
+USB keyboards and mice work through StreakOS's xHCI driver (any PC from about
+2013 onwards), and PS/2 devices and most laptops' built-in keyboards work
+directly. If a keyboard or mouse ever stops responding on unusual hardware,
+pick **"StreakOS (without USB driver)"** in the boot menu: the firmware's own
+USB emulation then stays in charge.
 
 ## Storage
 
-StreakOS stores files on an IDE/ATA disk using its own simple format
+StreakOS stores files on an IDE/ATA or SATA (AHCI) disk using its own simple format
 (StreakFS: 32 files, up to 64 KiB each). On boot it looks for a disk that
 either already holds StreakFS or is **completely blank** (its first 32 KiB are
 zero, as on a new virtual disk) and formats that one. **It never writes to a
@@ -119,7 +127,8 @@ sudo apt install build-essential nasm grub-pc-bin grub-efi-amd64-bin grub-common
 make -C os          # -> os/build/streakos.iso
 make -C os run      # boot it in QEMU with a persistent disk (os/build/disk.img)
 os/tools/smoke_test.sh os/build/streakos.iso   # headless BIOS + UEFI boot check
-os/tools/e2e.sh os/build/streakos.iso          # drives every app, reboots, checks persistence
+os/tools/e2e.sh os/build/streakos.iso          # drives every app, reboots, checks persistence;
+                                               # then a UEFI + q35 + SATA + USB-only run with hub hot-plug
 ```
 
 ## How it's built
@@ -137,6 +146,10 @@ kernel/shell.c    theme, wallpaper generator, icons, taskbar, Start menu, toasts
 kernel/anim.c     easing curves (cubic, quint, back, spring)
 kernel/fs.c       file table, clipboard
 kernel/storage.c  ATA PIO driver and StreakFS persistence
+kernel/ahci.c     SATA (AHCI) driver
+kernel/usb.c      xHCI driver: HID keyboards/mice/tablets, hubs, hot-plug
+kernel/pci.c      PCI enumeration
+kernel/paging.c   PAE paging: identity map + window for devices above 4 GiB
 kernel/acpi.c     ACPI shutdown (S5) and reset, with fallbacks
 apps/*.c          the apps; each is an app_t with init/paint/key/mouse/tick/close callbacks
 tools/genfont.py  rasterises the fonts into kernel/fontdata.h (output is committed)
@@ -154,10 +167,14 @@ StreakOS is a real OS but a young one. It does not replace Windows.
 
 * 32-bit, single core, everything runs in ring 0 with no memory protection
   between apps (cooperative: apps are callbacks in the compositor loop).
-* Storage needs an IDE/ATA (or IDE-compatible) disk. Most VMs have one. Many
-  modern PCs only expose AHCI/NVMe, and there StreakOS keeps files in memory.
-* No USB stack: on real hardware keyboard and mouse rely on PS/2 or the
-  firmware's USB legacy emulation. No network or sound drivers.
+* Storage: IDE and SATA (AHCI) disks are supported, NVMe drives and USB
+  sticks are not. On a real PC StreakOS will normally keep files in memory,
+  because it only ever writes to a blank or StreakOS-formatted disk.
+* USB: keyboards, mice, tablets and hubs only (no USB storage, audio, etc.).
+  Older USB 1/2-only controllers (pre-2013 PCs) are left to the firmware's
+  legacy emulation. I2C laptop touchpads are not supported, so use a USB or
+  PS/2 mouse.
+* No network or sound drivers.
 * Graphics are software-rendered into the firmware framebuffer, so the
   resolution is whatever GRUB sets (1280×800 requested).
 * It can't run Windows programs.

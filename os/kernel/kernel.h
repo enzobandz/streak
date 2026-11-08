@@ -14,6 +14,8 @@
 static inline void outb(uint16_t p, uint8_t v) { __asm__ volatile("outb %0, %1" ::"a"(v), "Nd"(p)); }
 static inline void outw(uint16_t p, uint16_t v) { __asm__ volatile("outw %0, %1" ::"a"(v), "Nd"(p)); }
 static inline uint16_t inw(uint16_t p) { uint16_t v; __asm__ volatile("inw %1, %0" : "=a"(v) : "Nd"(p)); return v; }
+static inline void outl(uint16_t p, uint32_t v) { __asm__ volatile("outl %0, %1" ::"a"(v), "Nd"(p)); }
+static inline uint32_t inl(uint16_t p) { uint32_t v; __asm__ volatile("inl %1, %0" : "=a"(v) : "Nd"(p)); return v; }
 static inline uint8_t inb(uint16_t p) { uint8_t v; __asm__ volatile("inb %1, %0" : "=a"(v) : "Nd"(p)); return v; }
 static inline void io_wait(void) { outb(0x80, 0); }
 static inline void cli(void) { __asm__ volatile("cli"); }
@@ -164,10 +166,41 @@ file_t *fs_write(const char *name, const char *data, size_t size);
 int fs_remove(const char *name);
 file_t *fs_list(int idx);
 file_t *fs_list_visible(int idx); /* skips dot-files such as .settings */
+typedef struct blkdev {
+    int (*rw)(struct blkdev *d, uint32_t lba, int count, void *buf, int write); /* 1 = ok */
+    uint32_t sectors;
+    char model[41];
+    int priv;
+    uint16_t base, ctrl; int slave; /* legacy ATA */
+} blkdev_t;
+int ahci_probe(blkdev_t *out, int max);
 int storage_init(file_t *files);
 int storage_save_slot(int slot, const file_t *f);
 const char *storage_status(void);
 int storage_persistent(void);
+
+/* ---- PCI ---- */
+typedef struct { int bus, dev, fn; uint16_t vendor, device; int cls, sub, progif; } pci_dev_t;
+uint32_t pci_read(int bus, int dev, int fn, int off);
+void pci_write(int bus, int dev, int fn, int off, uint32_t v);
+void pci_find(int cls, int sub, int progif, void (*cb)(pci_dev_t *d));
+uintptr_t pci_bar_mem(pci_dev_t *d, int bar); /* mapped address (handles BARs above 4 GiB), 0 if unusable */
+int paging_init(uintptr_t window, size_t window_size);
+void *map_mmio(uint64_t phys, size_t size);
+void pci_enable_mmio_dma(pci_dev_t *d);
+
+/* ---- USB (xHCI) ---- */
+void usb_init(void);
+void usb_poll(void);
+const char *usb_status(void);
+void delay_ms(uint32_t ms);
+void *kmalloc_aligned(size_t n, size_t align); /* zeroed, never freed */
+extern int g_cmdline_nousb;
+
+/* ---- input injection (used by USB drivers; safe to call outside IRQs) ---- */
+void input_scancode(uint16_t sc);     /* feed a PS/2 set-1 scancode; 0xE0xx = extended, |0x80 = release */
+void input_mouse(mouse_event_t *e);
+int input_lock_state(void);           /* bit0 scroll, bit1 num, bit2 caps (HID LED order: num=1, caps=2) */
 
 /* ---- clipboard (shared by Notes and Terminal) ---- */
 void clipboard_set(const char *text, size_t len);

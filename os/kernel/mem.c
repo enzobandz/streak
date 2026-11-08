@@ -64,3 +64,13 @@ void kfree(void *p) {
 
 size_t heap_used(void) { return used; }
 size_t heap_total(void) { return total; }
+
+/* Zeroed memory with the given power-of-two alignment, for DMA structures.
+ * Memory is identity mapped (no paging), so virtual == physical. */
+void *kmalloc_aligned(size_t n, size_t align) {
+    uint8_t *p = kmalloc(n + align);
+    if (!p) return 0;
+    uintptr_t a = ((uintptr_t)p + align - 1) & ~(uintptr_t)(align - 1);
+    memset((void *)a, 0, n);
+    return (void *)a;
+}

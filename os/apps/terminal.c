@@ -111,6 +111,7 @@ static void run(window_t *w, term_t *t, char *cmd) {
                         "  theme dark|light  switch theme         wallpaper <0-3>  change wallpaper\n"
                         "  disk              storage status       neofetch         system summary\n"
                         "  anim off|normal|relaxed            animation speed\n"
+                        "  usb               USB devices\n"
                         "  reboot / shutdown");
     } else if (!strcmp(cmd, "clear") || !strcmp(cmd, "cls")) {
         t->n = 0;
@@ -172,6 +173,8 @@ static void run(window_t *w, term_t *t, char *cmd) {
         int n = 0; size_t bytes = 0; file_t *f;
         for (int i = 0; (f = fs_list(i)); i++) { n++; bytes += f->size; }
         tprintf(t, K_OUT, "%d of %d files used, %u bytes", n, FS_MAX_FILES, (unsigned)bytes);
+    } else if (!strcmp(cmd, "usb")) {
+        tputk(t, K_OUT, usb_status());
     } else if (!strcmp(cmd, "mem") || !strcmp(cmd, "free")) {
         tprintf(t, K_OUT, "heap: %u KiB used of %u KiB", (unsigned)(heap_used() / 1024), (unsigned)(heap_total() / 1024));
     } else if (!strcmp(cmd, "sysinfo") || !strcmp(cmd, "neofetch") || !strcmp(cmd, "uname")) {
@@ -187,6 +190,7 @@ static void run(window_t *w, term_t *t, char *cmd) {
         tprintf(t, K_OUT, "           Memory:  %u / %u MiB", (unsigned)(heap_used() >> 20), (unsigned)(heap_total() >> 20));
         tprintf(t, K_OUT, "           Uptime:  %u min %u s", s / 60, s % 60);
         tprintf(t, K_OUT, "           Pointer: %s", mouse_is_absolute() ? "absolute (VM integration)" : "PS/2 relative");
+        tprintf(t, K_OUT, "           USB:     %s", usb_status());
         tprintf(t, K_OUT, "           FPS:     %u", g_fps);
     } else if (!strcmp(cmd, "theme")) {
         if (!strcmp(arg, "light")) theme_set(0, g_accent_idx);

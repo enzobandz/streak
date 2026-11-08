@@ -129,3 +129,13 @@ void cpu_name(char *out) {
     memmove(out, p, strlen(p) + 1);
 }
 
+
+/* Sleep using the 1 kHz timer; falls back to ~1 us port delays if interrupts
+ * are off (the timer would not advance). */
+void delay_ms(uint32_t n) {
+    uint32_t fl;
+    __asm__ volatile("pushf; pop %0" : "=r"(fl));
+    if (!(fl & 0x200)) { for (uint32_t i = 0; i < n * 1000; i++) io_wait(); return; }
+    uint32_t t = ticks_ms();
+    while (ticks_ms() - t < n) hlt();
+}

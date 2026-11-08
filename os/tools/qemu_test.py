@@ -11,12 +11,16 @@ from PIL import Image
 iso, outdir, script = sys.argv[1], sys.argv[2], sys.argv[3]
 os.makedirs(outdir, exist_ok=True)
 sock = os.path.join(outdir, "mon.sock")
+qsock = os.path.join(outdir, "qmp.sock")
+if os.path.exists(qsock):
+    os.remove(qsock)
 if os.path.exists(sock):
     os.remove(sock)
 extra = ["-drive", "file=%s,format=raw,if=ide,index=0" % os.environ["DISK"], "-boot", "d"] if os.environ.get("DISK") else []
+extra += os.environ.get("QEMU_EXTRA", "").split()
 q = subprocess.Popen(["qemu-system-x86_64", *extra, "-cdrom", iso, "-m", "256M", "-vga", "std",
                       "-display", "none", "-serial", "file:" + os.path.join(outdir, "serial.log"),
-                      "-monitor", "unix:%s,server,nowait" % sock, *(["-machine", "vmport=off"] if os.environ.get("VMPORT") != "1" else []), "-debugcon", "file:" + os.path.join(outdir, "debug.log")])
+                      "-monitor", "unix:%s,server,nowait" % sock, "-qmp", "unix:%s,server,nowait" % qsock, *(["-machine", "vmport=off"] if os.environ.get("VMPORT") != "1" else []), "-debugcon", "file:" + os.path.join(outdir, "debug.log")])
 for _ in range(100):
     if os.path.exists(sock):
         break
@@ -40,6 +44,22 @@ KEYS = {" ": "spc", "\n": "ret", "-": "minus", "=": "equal", ".": "dot", "/": "s
         "+": "shift-equal", "(": "shift-9", ")": "shift-0", "_": "shift-minus", ":": "shift-semicolon",
         ",": "comma", "'": "apostrophe", ";": "semicolon", "<": "shift-comma", ">": "shift-dot"}
 mon("info status")
+import json
+qmp = socket.socket(socket.AF_UNIX)
+qmp.connect(qsock)
+qmp.settimeout(2)
+qf = qmp.makefile("r")
+qf.readline()  # greeting
+def qmp_cmd(obj):
+    qmp.sendall((json.dumps(obj) + "\n").encode())
+    while True:  # skip asynchronous events until the reply
+        r = json.loads(qf.readline())
+        if "return" in r or "error" in r:
+            return r
+qmp_cmd({"execute": "qmp_capabilities"})
+def qmp_input(events):
+    qmp_cmd({"execute": "input-send-event", "arguments": {"events": events}})
+    time.sleep(0.05)
 for line in open(script):
     p = line.split()
     if not p or p[0].startswith("#"):
@@ -76,6 +96,15 @@ for line in open(script):
         mon("mouse_button 1")
     elif c == "up":
         mon("mouse_button 0")
+    elif c == "abs":  # absolute pointer position in 0..32767 (USB tablet)
+        qmp_input([{"type": "abs", "data": {"axis": "x", "value": int(p[1])}},
+                   {"type": "abs", "data": {"axis": "y", "value": int(p[2])}}])
+    elif c == "absclick":
+        qmp_input([{"type": "btn", "data": {"down": True, "button": "left"}}])
+        time.sleep(0.08)
+        qmp_input([{"type": "btn", "data": {"down": False, "button": "left"}}])
+    elif c == "mon":
+        mon(line.split(" ", 1)[1].strip())
     elif c == "reset":
         mon("system_reset")
     elif c == "wheel":

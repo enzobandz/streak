@@ -1,0 +1,35 @@
+# Modern-PC scenario for tools/e2e.sh: UEFI firmware, q35 chipset, SATA disk,
+# and USB-only input (no PS/2): keyboard, absolute tablet, hub, hot-plug.
+wait 8000
+type write usb.txt typed on a USB keyboard
+key ret
+key caps_lock
+type abc
+key caps_lock
+key ret
+type usb
+key ret
+# click the Paint icon on the taskbar with the USB tablet, draw, close it
+abs 16384 31620
+wait 200
+absclick
+wait 900
+abs 12000 12000
+absclick
+wait 300
+key alt-f4
+wait 400
+# hot-plug a hub with a mouse and a keyboard behind it, then remove it
+mon device_add usb-hub,bus=xhci.0,port=4,id=hub1
+wait 1500
+mon device_add usb-mouse,bus=xhci.0,port=4.1,id=m1
+mon device_add usb-kbd,bus=xhci.0,port=4.2,id=k1
+wait 2000
+type usb
+key ret
+mon device_del hub1
+wait 2000
+type usb
+key ret
+wait 500
+shot usb_session

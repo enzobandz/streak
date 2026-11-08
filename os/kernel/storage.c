@@ -17,8 +17,8 @@
 #define DATA_START 64
 #define DISK_NEED (DATA_START + FS_MAX_FILES * SLOT_SECTORS)
 
-typedef struct { uint16_t base, ctrl; int slave; uint32_t sectors; char model[41]; } ata_t;
-static ata_t disk;
+typedef blkdev_t ata_t;
+static blkdev_t disk;
 static int disk_ok;
 static char status_text[96] = "Files are kept in memory only";
 
@@ -97,6 +97,11 @@ static int ata_read(ata_t *d, uint32_t lba, int count, void *buf) {
     return 1;
 }
 
+static int ata_write(ata_t *d, uint32_t lba, int count, const void *buf);
+static int ata_rw(blkdev_t *d, uint32_t lba, int count, void *buf, int write) {
+    return write ? ata_write(d, lba, count, buf) : ata_read(d, lba, count, buf);
+}
+
 static int ata_write(ata_t *d, uint32_t lba, int count, const void *buf) {
     const uint16_t *p = buf;
     while (count > 0) {
@@ -125,14 +130,14 @@ typedef struct __attribute__((packed)) { char name[FS_NAME_LEN]; uint32_t size, 
 static int is_blank(ata_t *d) {
     uint8_t *buf = kmalloc(64 * 512);
     if (!buf) return 0;
-    int blank = ata_read(d, 0, 64, buf);
+    int blank = d->rw(d, 0, 64, buf, 0);
     for (int i = 0; blank && i < 64 * 512; i++) if (buf[i]) blank = 0;
     kfree(buf);
     return blank;
 }
 static int has_magic(ata_t *d) {
     uint8_t sec[512];
-    if (!ata_read(d, 0, 1, sec)) return 0;
+    if (!d->rw(d, 0, 1, sec, 0)) return 0;
     fs_header_t *h = (fs_header_t *)sec;
     return !memcmp(h->magic, "STREAKFS", 8) && h->version == 1 && h->slots == FS_MAX_FILES &&
            h->slot_sectors == SLOT_SECTORS && h->data_start == DATA_START;
@@ -145,17 +150,17 @@ int storage_save_slot(int slot, const file_t *f) {
         uint8_t *buf = kzalloc(secs * 512);
         if (!buf) return 0;
         memcpy(buf, f->data, f->size);
-        int ok = ata_write(&disk, DATA_START + slot * SLOT_SECTORS, secs, buf);
+        int ok = disk.rw(&disk, DATA_START + slot * SLOT_SECTORS, secs, buf, 1);
         kfree(buf);
         if (!ok) goto fail;
     }
     uint8_t sec[512];
     uint32_t dsec = 1 + slot / 4;
-    if (!ata_read(&disk, dsec, 1, sec)) goto fail;
+    if (!disk.rw(&disk, dsec, 1, sec, 0)) goto fail;
     fs_dirent_t *e = (fs_dirent_t *)sec + (slot % 4);
     memset(e, 0, sizeof *e);
     if (f && f->used) { memcpy(e->name, f->name, FS_NAME_LEN); e->size = f->size; e->used = 1; }
-    if (!ata_write(&disk, dsec, 1, sec)) goto fail;
+    if (!disk.rw(&disk, dsec, 1, sec, 1)) goto fail;
     return 1;
 fail:
     disk_ok = 0;
@@ -167,16 +172,19 @@ fail:
 /* Called by fs_init. Returns 1 if files were loaded from disk. */
 int storage_init(file_t *files) {
     static const uint16_t bases[2] = {0x1F0, 0x170}, ctrls[2] = {0x3F6, 0x376};
-    ata_t cand[4];
+    blkdev_t cand[12];
     int nc = 0;
     for (int b = 0; b < 2; b++)
         for (int sl = 0; sl < 2; sl++) {
-            ata_t d = {bases[b], ctrls[b], sl, 0, {0}};
+            blkdev_t d;
+            memset(&d, 0, sizeof d);
+            d.base = bases[b]; d.ctrl = ctrls[b]; d.slave = sl; d.rw = ata_rw;
             if (ata_identify(&d)) {
                 klog("storage: ATA %s %s: %s, %u sectors\n", b ? "secondary" : "primary", sl ? "slave" : "master", d.model, d.sectors);
                 cand[nc++] = d;
             }
         }
+    nc += ahci_probe(cand + nc, 12 - nc);
     int pick = -1, format = 0;
     for (int i = 0; i < nc && pick < 0; i++) if (cand[i].sectors >= DISK_NEED && has_magic(&cand[i])) pick = i;
     for (int i = 0; i < nc && pick < 0; i++) if (cand[i].sectors >= DISK_NEED && is_blank(&cand[i])) { pick = i; format = 1; }
@@ -191,19 +199,19 @@ int storage_init(file_t *files) {
         uint8_t sec[512];
         memset(sec, 0, sizeof sec);
         uint8_t *zero = kzalloc(8 * 512);
-        if (!zero || !ata_write(&disk, 1, 8, zero)) { kfree(zero); disk_ok = 0; return 0; }
+        if (!zero || !disk.rw(&disk, 1, 8, zero, 1)) { kfree(zero); disk_ok = 0; return 0; }
         kfree(zero);
         fs_header_t *h = (fs_header_t *)sec;
         memcpy(h->magic, "STREAKFS", 8);
         h->version = 1; h->slots = FS_MAX_FILES; h->slot_sectors = SLOT_SECTORS; h->data_start = DATA_START;
-        if (!ata_write(&disk, 0, 1, sec)) { disk_ok = 0; return 0; }
+        if (!disk.rw(&disk, 0, 1, sec, 1)) { disk_ok = 0; return 0; }
         ksnprintf(status_text, sizeof status_text, "Saved to disk: %s (formatted)", disk.model[0] ? disk.model : "ATA disk");
         klog("storage: formatted blank disk\n");
         return 0; /* caller writes the default files, which persists them */
     }
     /* load the directory and file data */
     uint8_t dir[8 * 512];
-    if (!ata_read(&disk, 1, 8, dir)) { disk_ok = 0; return 0; }
+    if (!disk.rw(&disk, 1, 8, dir, 0)) { disk_ok = 0; return 0; }
     int loaded = 0;
     for (int i = 0; i < FS_MAX_FILES; i++) {
         fs_dirent_t *e = (fs_dirent_t *)dir + i;
@@ -211,7 +219,7 @@ int storage_init(file_t *files) {
         int secs = (int)((e->size + 511) / 512);
         char *data = kmalloc(secs * 512 + 1);
         if (!data) continue;
-        if (secs && !ata_read(&disk, DATA_START + i * SLOT_SECTORS, secs, data)) { kfree(data); continue; }
+        if (secs && !disk.rw(&disk, DATA_START + i * SLOT_SECTORS, secs, data, 0)) { kfree(data); continue; }
         data[e->size] = 0;
         memcpy(files[i].name, e->name, FS_NAME_LEN);
         files[i].name[FS_NAME_LEN - 1] = 0;
