@@ -9,3 +9,6 @@ app/test-results/
 *.db-shm
 .DS_Store
 app/e2e/screenshots/
+
+# StreakOS build output
+/os/build/

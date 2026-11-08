@@ -1,0 +1,30 @@
+name: StreakOS
+
+on:
+  push:
+    paths: ["os/**", ".github/workflows/streakos.yml"]
+  pull_request:
+    paths: ["os/**", ".github/workflows/streakos.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  iso:
+    name: Build and boot-test the ISO
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nasm grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools qemu-system-x86 ovmf
+      - name: Build
+        run: make -C os
+      - name: Boot test (BIOS and UEFI)
+        run: cd os && ./tools/smoke_test.sh build/streakos.iso
+      - uses: actions/upload-artifact@v4
+        with:
+          name: streakos-iso
+          path: os/build/streakos.iso
