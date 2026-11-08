@@ -6,7 +6,7 @@ static file_t files[FS_MAX_FILES];
 void fs_init(void) {
     if (storage_init(files)) return; /* files came from disk */
     const char *readme =
-        "Welcome to StreakOS!\n\n"
+        "Welcome to Fluvia!\n\n"
         "Everything you see is drawn by a small kernel written from scratch:\n"
         "a compositing window manager, anti-aliased text and 60 fps animations.\n\n"
         "Tips\n"

@@ -3,7 +3,7 @@
 **A free, open-source, offline PDF editor for Windows, macOS and Linux.**
 No accounts, no subscriptions, no ads, no watermarks, no telemetry, no uploads.
 
-> This repository also contains **[StreakOS](os/README.md)**, a from-scratch
+> This repository also contains **[Fluvia](os/README.md)**, a from-scratch
 > bootable operating system with a fluid compositing desktop, in [`os/`](os/).
 
 ![OpenPDF Studio viewing a document](docs/screenshots/viewer.png)

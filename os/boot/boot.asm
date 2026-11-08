@@ -1,4 +1,4 @@
-; StreakOS entry point: Multiboot2 header (asks GRUB for a 32-bit linear
+; Fluvia entry point: Multiboot2 header (asks GRUB for a 32-bit linear
 ; framebuffer), stack setup, FPU enable, jump to C.
 bits 32
 

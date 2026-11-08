@@ -10,5 +10,5 @@ app/test-results/
 .DS_Store
 app/e2e/screenshots/
 
-# StreakOS build output
+# Fluvia build output
 /os/build/

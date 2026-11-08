@@ -1,10 +1,10 @@
-name: StreakOS
+name: Fluvia
 
 on:
   push:
-    paths: ["os/**", ".github/workflows/streakos.yml"]
+    paths: ["os/**", ".github/workflows/fluvia.yml"]
   pull_request:
-    paths: ["os/**", ".github/workflows/streakos.yml"]
+    paths: ["os/**", ".github/workflows/fluvia.yml"]
   workflow_dispatch:
 
 permissions:
@@ -23,16 +23,16 @@ jobs:
       - name: Build
         run: make -C os
       - name: Boot test (BIOS and UEFI)
-        run: cd os && ./tools/smoke_test.sh build/streakos.iso
+        run: cd os && ./tools/smoke_test.sh build/fluvia.iso
       - name: End-to-end test (every app, persistence across reboot, shutdown)
-        run: cd os && ./tools/e2e.sh build/streakos.iso build/e2e
+        run: cd os && ./tools/e2e.sh build/fluvia.iso build/e2e
       - name: Upload e2e screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: streakos-e2e-screenshots
+          name: fluvia-e2e-screenshots
           path: os/build/e2e/**/*.png
       - uses: actions/upload-artifact@v4
         with:
-          name: streakos-iso
-          path: os/build/streakos.iso
+          name: fluvia-iso
+          path: os/build/fluvia.iso

@@ -33,7 +33,7 @@ void theme_set(int dark, int accent) {
 
 /* ---- wallpaper ---- */
 typedef struct { float x, y, r; uint32_t c; } blob_t;
-typedef struct { const char *name; uint32_t top, bottom; blob_t b[4]; float streak; } wallspec_t;
+typedef struct { const char *name; uint32_t top, bottom; blob_t b[4]; float current; } wallspec_t;
 static const wallspec_t walls[4] = {
     {"Aurora", RGB(0x09, 0x0E, 0x2A), RGB(0x17, 0x0A, 0x30),
      {{0.18f, 0.30f, 0.50f, RGB(0x00, 0xC9, 0xA7)}, {0.78f, 0.22f, 0.55f, RGB(0x4F, 0x6B, 0xFF)},
@@ -102,11 +102,11 @@ void shell_generate_wallpaper(int idx) {
                 g += (((bl->c >> 8) & 255) - g) * wgt;
                 b += ((bl->c & 255) - b) * wgt;
             }
-            /* the "streak": a soft diagonal band of light */
+            /* the "current": a soft diagonal band of light */
             float d = fy - (0.95f - 0.75f * fx);
             float band = 1 - (d * d) / (0.012f);
             if (band > 0) {
-                float k = band * band * ws->streak;
+                float k = band * band * ws->current;
                 r += (255 - r) * k; g += (255 - g) * k; b += (255 - b) * k;
             }
             lo->px[y * lw + x] = RGB((int)r, (int)g, (int)b);
@@ -273,8 +273,7 @@ static void draw_start_glyph(surface_t *s, rect_t r) {
         fill_round_rect(s, sq, 7, mix(mix(g_theme.accent, 0xFFFFFFFF, 60), mix(g_theme.accent, 0xFF000000, 50), i * 255 / 25));
         g_clip = saved;
     }
-    draw_line(s, cx - 6, cy + 6, cx + 6, cy - 6, 4, 0xFFFFFFFF);
-    fill_circle(s, cx + 7, cy - 7, 2, 0xFFFFFFFF);
+    draw_wave_logo(s, cx, cy, 18, 0xFFFFFFFF);
 }
 
 static void draw_taskbar(uint32_t now) {
@@ -303,7 +302,7 @@ static void draw_taskbar(uint32_t now) {
     draw_text(g_screen, x + tw - text_width(clock_txt, &font_small), tb.y + 9, clock_txt, &font_small, g_theme.text);
     draw_text(g_screen, x + tw - text_width(date_txt, &font_small), tb.y + 27, date_txt, &font_small, g_theme.text);
     /* left: tiny brand */
-    draw_text(g_screen, 18, tb.y + (TASKBAR_H - font_bold.height) / 2, "StreakOS", &font_bold, g_theme.text_dim);
+    draw_text(g_screen, 18, tb.y + (TASKBAR_H - font_bold.height) / 2, "Fluvia", &font_bold, g_theme.text_dim);
 }
 
 /* ---- start menu ---- */

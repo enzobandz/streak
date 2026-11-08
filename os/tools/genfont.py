@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rasterise the UI fonts into anti-aliased alpha glyph atlases (kernel/fontdata.h).
 
-The generated header is committed, so building StreakOS does not need Python or
+The generated header is committed, so building Fluvia does not need Python or
 the fonts installed. Re-run only to change fonts or sizes:
     python3 tools/genfont.py > kernel/fontdata.h
 """

@@ -1,13 +1,13 @@
-/* ATA PIO disk driver and StreakFS persistence.
+/* ATA PIO disk driver and FluviaFS persistence.
  *
- * Safety: StreakOS only ever writes to a disk that already carries the
- * StreakFS signature, or to one whose first 64 sectors are entirely zero (a
+ * Safety: Fluvia only ever writes to a disk that already carries the
+ * FluviaFS signature, or to one whose first 64 sectors are entirely zero (a
  * brand-new virtual disk). Disks with any other content (MBR, GPT, NTFS, ...)
  * are never written. Every wait has a timeout, so missing or odd hardware
  * cannot hang the system; without a usable disk files simply stay in RAM.
  *
  * Layout (512-byte sectors):
- *   0          header: "STREAKFS", version, slot count, sectors per slot, data start
+ *   0          header: "FLUVIAFS", version, slot count, sectors per slot, data start
  *   1..8       directory: 32 entries x 128 bytes (name[32], size, used)
  *   64 + 128*i data for file slot i (up to 64 KiB each)
  */
@@ -123,7 +123,7 @@ static int ata_write(ata_t *d, uint32_t lba, int count, const void *buf) {
     return !(inb(d->base + 7) & 0x21);
 }
 
-/* ---- StreakFS ---- */
+/* ---- FluviaFS ---- */
 typedef struct __attribute__((packed)) { char magic[8]; uint32_t version, slots, slot_sectors, data_start; } fs_header_t;
 typedef struct __attribute__((packed)) { char name[FS_NAME_LEN]; uint32_t size, used; uint8_t pad[128 - FS_NAME_LEN - 8]; } fs_dirent_t;
 
@@ -139,7 +139,7 @@ static int has_magic(ata_t *d) {
     uint8_t sec[512];
     if (!d->rw(d, 0, 1, sec, 0)) return 0;
     fs_header_t *h = (fs_header_t *)sec;
-    return !memcmp(h->magic, "STREAKFS", 8) && h->version == 1 && h->slots == FS_MAX_FILES &&
+    return !memcmp(h->magic, "FLUVIAFS", 8) && h->version == 1 && h->slots == FS_MAX_FILES &&
            h->slot_sectors == SLOT_SECTORS && h->data_start == DATA_START;
 }
 
@@ -189,7 +189,7 @@ int storage_init(file_t *files) {
     for (int i = 0; i < nc && pick < 0; i++) if (cand[i].sectors >= DISK_NEED && has_magic(&cand[i])) pick = i;
     for (int i = 0; i < nc && pick < 0; i++) if (cand[i].sectors >= DISK_NEED && is_blank(&cand[i])) { pick = i; format = 1; }
     if (pick < 0) {
-        if (nc) strlcpy(status_text, "Files are kept in memory only (no blank or StreakOS disk found)", sizeof status_text);
+        if (nc) strlcpy(status_text, "Files are kept in memory only (no blank or Fluvia disk found)", sizeof status_text);
         klog("storage: no usable disk, files stay in RAM\n");
         return 0;
     }
@@ -202,7 +202,7 @@ int storage_init(file_t *files) {
         if (!zero || !disk.rw(&disk, 1, 8, zero, 1)) { kfree(zero); disk_ok = 0; return 0; }
         kfree(zero);
         fs_header_t *h = (fs_header_t *)sec;
-        memcpy(h->magic, "STREAKFS", 8);
+        memcpy(h->magic, "FLUVIAFS", 8);
         h->version = 1; h->slots = FS_MAX_FILES; h->slot_sectors = SLOT_SECTORS; h->data_start = DATA_START;
         if (!disk.rw(&disk, 0, 1, sec, 1)) { disk_ok = 0; return 0; }
         ksnprintf(status_text, sizeof status_text, "Saved to disk: %s (formatted)", disk.model[0] ? disk.model : "ATA disk");

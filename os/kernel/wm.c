@@ -719,7 +719,7 @@ void panic_screen(const char *msg, regs_t *r) {
     clip_reset(g_screen);
     fill_rect(g_screen, mkrect(0, 0, SCR_W, SCR_H), RGB(0x12, 0x1A, 0x3A));
     draw_text(g_screen, 80, 100, ":(", &font_big, 0xFFFFFFFF);
-    draw_text(g_screen, 80, 180, "StreakOS ran into a problem and stopped.", &font_title, 0xFFFFFFFF);
+    draw_text(g_screen, 80, 180, "Fluvia ran into a problem and stopped.", &font_title, 0xFFFFFFFF);
     char buf[160];
     ksnprintf(buf, sizeof buf, "%s  (vector %u, error %x, at %x)", msg, r->vec, r->err, r->eip);
     draw_text(g_screen, 80, 230, buf, &font_mono, 0xFFDDDDFF);

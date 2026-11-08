@@ -4,7 +4,7 @@
 # Fails on any CPU exception or if the system stops responding.
 set -eu
 cd "$(dirname "$0")/.."
-ISO=${1:-build/streakos.iso}
+ISO=${1:-build/fluvia.iso}
 OUT=${2:-build/e2e}
 rm -rf "$OUT"; mkdir -p "$OUT"
 truncate -s 32M "$OUT/disk.img"

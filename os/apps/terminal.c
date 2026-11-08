@@ -15,7 +15,7 @@ typedef struct {
     int blink_on;
 } term_t;
 enum { K_OUT, K_CMD, K_ERR, K_ACC, K_DIM };
-static const char *PROMPT = "guest@streak ~ $ ";
+static const char *PROMPT = "guest@fluvia ~ $ ";
 
 static void tputk(term_t *t, int kind, const char *s) {
     /* split on newlines and wrap long lines */
@@ -180,12 +180,12 @@ static void run(window_t *w, term_t *t, char *cmd) {
     } else if (!strcmp(cmd, "sysinfo") || !strcmp(cmd, "neofetch") || !strcmp(cmd, "uname")) {
         char cpu[48];
         cpu_name(cpu);
-        if (!strcmp(cmd, "uname")) { tputk(t, K_OUT, "StreakOS 1.0 i686"); return; }
+        if (!strcmp(cmd, "uname")) { tputk(t, K_OUT, "Fluvia 1.0 i686"); return; }
         uint32_t s = ticks_ms() / 1000;
-        tprintf(t, K_ACC, "   /\\      guest@streak");
-        tprintf(t, K_ACC, "  /  \\     ------------");
-        tprintf(t, K_ACC, " / /\\ \\    OS:      StreakOS 1.0 (i686)");
-        tprintf(t, K_ACC, "/_/  \\_\\   CPU:     %s", cpu);
+        tprintf(t, K_ACC, "  ~~~~~~   guest@fluvia");
+        tprintf(t, K_ACC, " ~~~~~~~~  ------------");
+        tprintf(t, K_ACC, "  ~~~~~~   OS:      Fluvia 1.0 (i686)");
+        tprintf(t, K_ACC, "   ~~~~    CPU:     %s", cpu);
         tprintf(t, K_OUT, "           Display: %dx%d, 32-bit colour", SCR_W, SCR_H);
         tprintf(t, K_OUT, "           Memory:  %u / %u MiB", (unsigned)(heap_used() >> 20), (unsigned)(heap_total() >> 20));
         tprintf(t, K_OUT, "           Uptime:  %u min %u s", s / 60, s % 60);
@@ -222,7 +222,7 @@ static void t_init(window_t *w) {
     term_t *t = kzalloc(sizeof *t);
     w->data = t;
     if (!t) return;
-    tputk(t, K_ACC, "StreakOS Terminal");
+    tputk(t, K_ACC, "Fluvia Terminal");
     tputk(t, K_DIM, "Type 'help' for a list of commands.");
     tputk(t, K_OUT, "");
 }

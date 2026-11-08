@@ -2,7 +2,7 @@
 # Boot the ISO headless (BIOS, and UEFI if OVMF is installed) and check the
 # kernel reaches the desktop. Used by CI.
 set -eu
-ISO=${1:-build/streakos.iso}
+ISO=${1:-build/fluvia.iso}
 OUT=$(mktemp -d)
 boot() {
     name=$1; shift

@@ -1,4 +1,4 @@
-/* StreakOS kernel entry: hardware bring-up, then the 60 fps compositor loop. */
+/* Fluvia kernel entry: hardware bring-up, then the 60 fps compositor loop. */
 #include "wm.h"
 #include "fontdata.h"
 
@@ -37,7 +37,7 @@ static void fb_error(fb_info_t *fb, const char *msg) {
     surface_t s = {(uint32_t *)fb->addr, (int)fb->width, (int)fb->height, (int)(fb->pitch / 4)};
     clip_reset(&s);
     fill_rect(&s, mkrect(0, 0, s.w, s.h), RGB(0x12, 0x1A, 0x3A));
-    draw_text(&s, 60, 80, "StreakOS can't start", &font_title, 0xFFFFFFFF);
+    draw_text(&s, 60, 80, "Fluvia can't start", &font_title, 0xFFFFFFFF);
     draw_text(&s, 60, 130, msg, &font_ui, 0xFFDDDDFF);
 }
 
@@ -52,9 +52,8 @@ static void boot_splash(int progress) {
         fill_round_rect(g_screen, sq, 18, mix(RGB(0x7C, 0xC4, 0xFF), RGB(0x2B, 0x63, 0xF0), i * 255 / 71));
         g_clip = saved;
     }
-    draw_line(g_screen, cx - 16, cy + 16, cx + 16, cy - 16, 9, 0xFFFFFFFF);
-    fill_circle(g_screen, cx + 19, cy - 19, 5, 0xFFFFFFFF);
-    draw_text_centered(g_screen, mkrect(0, cy + 56, SCR_W, 40), "StreakOS", &font_title, 0xFFFFFFFF);
+    draw_wave_logo(g_screen, cx, cy, 46, 0xFFFFFFFF);
+    draw_text_centered(g_screen, mkrect(0, cy + 56, SCR_W, 40), "Fluvia", &font_title, 0xFFFFFFFF);
     rect_t bar = mkrect(cx - 80, cy + 110, 160, 4);
     fill_round_rect(g_screen, bar, 2, 0x30FFFFFF);
     fill_round_rect(g_screen, mkrect(bar.x, bar.y, bar.w * progress / 100, 4), 2, RGB(0x7C, 0xC4, 0xFF));
@@ -63,7 +62,7 @@ static void boot_splash(int progress) {
 
 void kmain(uint32_t magic, uint32_t mbi) {
     serial_init();
-    klog("StreakOS booting\n");
+    klog("Fluvia booting\n");
     if (magic != 0x36D76289) { klog("not loaded by a multiboot2 loader\n"); return; }
 
     /* parse multiboot2 tags */
@@ -98,7 +97,7 @@ void kmain(uint32_t magic, uint32_t mbi) {
         p += (size + 7) & ~7u;
     }
     klog("fb %ux%u bpp=%u pitch=%u at %x; heap %x-%x\n", fb.width, fb.height, fb.bpp, fb.pitch, (uint32_t)fb_addr, (uint32_t)best_lo, (uint32_t)best_hi);
-    if (!fb_addr || !fb.width) { text_error("StreakOS needs a graphics mode. Boot it with GRUB from the StreakOS ISO."); return; }
+    if (!fb_addr || !fb.width) { text_error("Fluvia needs a graphics mode. Boot it with GRUB from the Fluvia ISO."); return; }
 
     if (fb.bpp != 32 && fb.bpp != 24 && fb.bpp != 16) {
         klog("unsupported framebuffer format (%u bpp)\n", fb.bpp);
@@ -108,7 +107,7 @@ void kmain(uint32_t magic, uint32_t mbi) {
     uint64_t need = (uint64_t)fb.width * fb.height * 4 * 3 + (20u << 20) + (16u << 20);
     if (best_hi - best_lo < need) {
         char msg[96];
-        ksnprintf(msg, sizeof msg, "StreakOS needs at least %u MiB of RAM at this resolution.", (unsigned)(need >> 20) + 4);
+        ksnprintf(msg, sizeof msg, "Fluvia needs at least %u MiB of RAM at this resolution.", (unsigned)(need >> 20) + 4);
         klog("%s\n", msg);
         fb_error(&fb, msg);
         return;
@@ -144,7 +143,7 @@ void kmain(uint32_t magic, uint32_t mbi) {
 
     /* fade from the splash into the desktop */
     uint32_t start = ticks_ms(), last = 0, fps_t = start, frames = 0;
-    toast("Welcome to StreakOS", "Press the Windows key or click Start.");
+    toast("Welcome to Fluvia", "Press the Windows key or click Start.");
     wm_open(&app_terminal);
     klog("desktop ready after %u ms\n", ticks_ms());
     for (;;) {

@@ -1,4 +1,4 @@
-/* StreakOS - shared kernel declarations. */
+/* Fluvia - shared kernel declarations. */
 #pragma once
 #include <stdint.h>
 #include <stddef.h>
@@ -140,6 +140,7 @@ int text_width(const char *text, const font_t *f);
 int text_width_n(const char *text, int n, const font_t *f);
 void draw_text_centered(surface_t *s, rect_t r, const char *text, const font_t *f, uint32_t argb);
 void box_blur(surface_t *s, int radius);
+void draw_wave_logo(surface_t *s, int cx, int cy, int size, uint32_t argb);
 
 /* ---- display ---- */
 typedef struct { uintptr_t addr; uint32_t pitch, width, height, bpp; int bgr; } fb_info_t;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Boot StreakOS headless in QEMU and drive it via the monitor for screenshots.
+"""Boot Fluvia headless in QEMU and drive it via the monitor for screenshots.
 
 usage: qemu_test.py ISO OUTDIR script.txt
 script lines:  wait <ms> | shot <name> | key <qemu-key> | type <text> |

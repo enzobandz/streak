@@ -310,6 +310,24 @@ void draw_shadow_ex(surface_t *dst, rect_t r, int rad, int strength, rect_t skip
 }
 void draw_shadow(surface_t *dst, rect_t r, int rad, int strength) { draw_shadow_ex(dst, r, rad, strength, r); }
 
+/* ---- Fluvia logo: two stacked waves, the lower one shorter ---- */
+void draw_wave_logo(surface_t *s, int cx, int cy, int size, uint32_t c) {
+    int w = size, amp = MAX(1, size / 9), th = MAX(2, size / 7);
+    for (int row = 0; row < 2; row++) {
+        int y0 = cy - size / 6 + row * size / 3;
+        int half = row ? w * 3 / 8 : w / 2;
+        int px = 0, py = 0;
+        for (int i = 0; i <= 24; i++) {
+            float t = (float)i / 24, a = t * 6.2831853f + (row ? 1.2f : 0), sn;
+            __asm__("fsin" : "=t"(sn) : "0"(a));
+            int x = cx - half + (int)(t * 2 * half), y = y0 + (int)(sn * amp);
+            if (i) draw_line(s, px, py, x, y, th, c);
+            px = x;
+            py = y;
+        }
+    }
+}
+
 /* ---- text ---- */
 int draw_text_n(surface_t *s, int x, int y, const char *t, int n, const font_t *f, uint32_t c) {
     uint32_t ca = c >> 24;

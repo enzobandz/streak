@@ -1,4 +1,4 @@
-/* StreakOS window manager / desktop shell API used by apps. */
+/* Fluvia window manager / desktop shell API used by apps. */
 #pragma once
 #include "kernel.h"
 

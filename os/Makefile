@@ -1,4 +1,4 @@
-# StreakOS build. Needs: gcc (with -m32 support), nasm, ld (GNU binutils),
+# Fluvia build. Needs: gcc (with -m32 support), nasm, ld (GNU binutils),
 # grub-mkrescue + xorriso (+ grub-pc-bin / grub-efi-amd64-bin for a hybrid ISO).
 CC      ?= gcc
 LD      ?= ld
@@ -12,8 +12,8 @@ BUILD := build
 CSRC  := $(wildcard kernel/*.c) $(wildcard apps/*.c)
 ASRC  := boot/boot.asm boot/isr.asm
 OBJS  := $(ASRC:%.asm=$(BUILD)/%.o) $(CSRC:%.c=$(BUILD)/%.o)
-KERNEL := $(BUILD)/streakos.elf
-ISO    := $(BUILD)/streakos.iso
+KERNEL := $(BUILD)/fluvia.elf
+ISO    := $(BUILD)/fluvia.iso
 
 .PHONY: all iso run run-kvm clean
 all: iso
@@ -32,11 +32,11 @@ $(KERNEL): $(OBJS) linker.ld
 iso: $(ISO)
 $(ISO): $(KERNEL) grub.cfg
 	@mkdir -p $(BUILD)/iso/boot/grub
-	cp $(KERNEL) $(BUILD)/iso/boot/streakos.elf
+	cp $(KERNEL) $(BUILD)/iso/boot/fluvia.elf
 	cp grub.cfg $(BUILD)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $@ $(BUILD)/iso 2>/dev/null
 
-# A blank disk image: StreakOS formats it on first boot and keeps files on it.
+# A blank disk image: Fluvia formats it on first boot and keeps files on it.
 DISK := $(BUILD)/disk.img
 $(DISK):
 	@mkdir -p $(BUILD)
