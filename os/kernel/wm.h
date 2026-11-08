@@ -74,6 +74,8 @@ void wm_init(void);
 void wm_frame(uint32_t now);
 void wm_apply_theme(void);
 void wm_open_file_in_notes(const char *name);
+void wm_shutdown(int restart);
+void wm_taskbar_click(window_t *w);
 
 /* shell */
 void shell_init(void);
@@ -81,6 +83,7 @@ void shell_generate_wallpaper(int idx);
 void draw_app_icon(surface_t *s, int x, int y, int size, int icon);
 void toast(const char *title, const char *body);
 void theme_set(int dark, int accent_idx);
+void settings_save(void);
 
 /* widgets shared by apps */
 void ui_button(surface_t *s, rect_t r, const char *label, int hover, int pressed, int primary);

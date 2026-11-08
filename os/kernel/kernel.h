@@ -13,6 +13,7 @@
 /* ---- port I/O ---- */
 static inline void outb(uint16_t p, uint8_t v) { __asm__ volatile("outb %0, %1" ::"a"(v), "Nd"(p)); }
 static inline void outw(uint16_t p, uint16_t v) { __asm__ volatile("outw %0, %1" ::"a"(v), "Nd"(p)); }
+static inline uint16_t inw(uint16_t p) { uint16_t v; __asm__ volatile("inw %1, %0" : "=a"(v) : "Nd"(p)); return v; }
 static inline uint8_t inb(uint16_t p) { uint8_t v; __asm__ volatile("inb %1, %0" : "=a"(v) : "Nd"(p)); return v; }
 static inline void io_wait(void) { outb(0x80, 0); }
 static inline void cli(void) { __asm__ volatile("cli"); }
@@ -91,7 +92,9 @@ void mouse_init(void);
 int mouse_poll(mouse_event_t *ev);
 int mouse_is_absolute(void);
 
-void power_off(void);
+void acpi_set_rsdp(uintptr_t rsdp);
+void acpi_init(void);
+void power_off(void); /* returns if the machine could not be switched off */
 void reboot(void);
 
 /* ---- graphics ---- */
@@ -137,7 +140,7 @@ void draw_text_centered(surface_t *s, rect_t r, const char *text, const font_t *
 void box_blur(surface_t *s, int radius);
 
 /* ---- display ---- */
-typedef struct { uintptr_t addr; uint32_t pitch, width, height, bpp; } fb_info_t;
+typedef struct { uintptr_t addr; uint32_t pitch, width, height, bpp; int bgr; } fb_info_t;
 void display_init(fb_info_t *fb);
 extern surface_t *g_screen; /* back buffer */
 extern int SCR_W, SCR_H;
@@ -153,12 +156,22 @@ extern int g_anim_speed_pct; /* 100 = normal, 0 = animations off */
 /* ---- ramfs ---- */
 #define FS_MAX_FILES 32
 #define FS_NAME_LEN 32
+#define FS_MAX_FILE 65536
 typedef struct { char name[FS_NAME_LEN]; char *data; size_t size; int used; } file_t;
 void fs_init(void);
 file_t *fs_find(const char *name);
 file_t *fs_write(const char *name, const char *data, size_t size);
 int fs_remove(const char *name);
 file_t *fs_list(int idx);
+file_t *fs_list_visible(int idx); /* skips dot-files such as .settings */
+int storage_init(file_t *files);
+int storage_save_slot(int slot, const file_t *f);
+const char *storage_status(void);
+int storage_persistent(void);
+
+/* ---- clipboard (shared by Notes and Terminal) ---- */
+void clipboard_set(const char *text, size_t len);
+const char *clipboard_get(size_t *len);
 
 /* ---- kernel misc ---- */
 extern uint32_t g_frame_ms_hist[120];

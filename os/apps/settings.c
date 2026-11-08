@@ -2,7 +2,8 @@
 #include "../kernel/wm.h"
 
 const char *wallpaper_name(int i);
-typedef struct { anim_t knob; int hover; } set_t;
+typedef struct { anim_t knob; int hover, scroll; surface_t *off; } set_t;
+#define CONTENT_H 520
 static const int speeds[3] = {0, 100, 50};
 static const char *speed_names[3] = {"Off", "Normal", "Relaxed"};
 
@@ -20,6 +21,7 @@ static rect_t speed_r(int i) { return mkrect(32 + i * 104, SEC_ANIM + 34, 100, 3
 static void s_init(window_t *w) {
     set_t *s = kzalloc(sizeof *s);
     w->data = s;
+    if (!s) return;
     s->hover = -1;
     s->knob.to = g_theme.dark;
 }
@@ -31,7 +33,7 @@ static void section(surface_t *s, int y, int h, const char *title) {
     draw_text(s, 32, y + 12, title, &font_bold, t->text);
 }
 
-static void s_paint(window_t *w, surface_t *s) {
+static void s_paint_content(window_t *w, surface_t *s) {
     set_t *st = w->data;
     theme_t *t = &g_theme;
     uint32_t now = ticks_ms();
@@ -93,7 +95,25 @@ static void s_paint(window_t *w, surface_t *s) {
         r.y = anim_y + 36;
         ui_button(s, r, speed_names[i], st->hover == 30 + i, 0, g_anim_speed_pct == speeds[i]);
     }
-    draw_text(s, 32, anim_y + 84 + 18, "StreakOS 1.0  -  everything here is drawn by the StreakOS compositor.", &font_small, t->text_dim);
+    draw_text(s, 32, anim_y + 84 + 14, storage_status(), &font_small, storage_persistent() ? t->text_dim : RGB(0xE0, 0x8A, 0x1E));
+    if (!storage_persistent())
+        draw_text(s, 32, anim_y + 84 + 32, "Attach a blank virtual hard disk to keep files and settings.", &font_small, t->text_dim);
+}
+
+/* When the window is shorter than the page, paint the page off-screen and
+ * show the scrolled part of it. */
+static void s_paint(window_t *w, surface_t *s) {
+    set_t *st = w->data;
+    if (s->h >= CONTENT_H) { st->scroll = 0; s_paint_content(w, s); return; }
+    if (!st->off || st->off->w != s->w) { surface_free(st->off); st->off = surface_new(s->w, CONTENT_H); }
+    if (!st->off) { s_paint_content(w, s); return; }
+    st->scroll = CLAMP(st->scroll, 0, CONTENT_H - s->h);
+    clip_reset(st->off);
+    s_paint_content(w, st->off);
+    blit_opaque(s, 0, 0, st->off, mkrect(0, st->scroll, s->w, s->h));
+    int th = MAX(24, s->h * s->h / CONTENT_H);
+    int ty = (s->h - th) * st->scroll / (CONTENT_H - s->h);
+    fill_round_rect(s, mkrect(s->w - 6, ty, 4, th), 2, g_theme.dark ? 0x50FFFFFF : 0x40000000);
 }
 
 static int hit(window_t *w, int x, int y) {
@@ -112,6 +132,8 @@ static int hit(window_t *w, int x, int y) {
 static void s_mouse(window_t *w, int x, int y, int b, int ev, int wheel) {
     (void)b; (void)wheel;
     set_t *st = w->data;
+    if (ev == ME_WHEEL) { st->scroll = MAX(0, st->scroll + wheel * 40); wm_invalidate(w); return; }
+    y += st->scroll;
     int h = hit(w, x, y);
     if (h != st->hover) { st->hover = h; wm_invalidate(w); }
     if (ev != ME_DOWN || h < 0) return;
@@ -131,8 +153,11 @@ static void s_mouse(window_t *w, int x, int y, int b, int ev, int wheel) {
     } else if (h >= 30 && h < 33) {
         g_anim_speed_pct = speeds[h - 30];
     }
+    settings_save();
     wm_invalidate(w);
 }
+
+static void s_close(window_t *w) { surface_free(((set_t *)w->data)->off); }
 
 static void s_tick(window_t *w, uint32_t now) {
     (void)now;
@@ -141,4 +166,4 @@ static void s_tick(window_t *w, uint32_t now) {
 }
 
 const app_t app_settings = {"Settings", "Theme, colours and wallpaper", ICON_SETTINGS, 560, 560, 1, 1,
-                            s_init, s_paint, 0, s_mouse, s_tick, 0};
+                            s_init, s_paint, 0, s_mouse, s_tick, s_close};

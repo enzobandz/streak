@@ -72,14 +72,19 @@ static void put(outbuf_t *o, char c) {
     if (o->pos + 1 < o->n) o->buf[o->pos] = c;
     o->pos++;
 }
-static void put_num(outbuf_t *o, unsigned long long v, int base, int neg, int width, char pad, int upper) {
+static void put_num(outbuf_t *o, unsigned long long v, int base, int neg, int width, char pad, int upper, int left) {
     char tmp[24];
     int i = 0;
     const char *dig = upper ? "0123456789ABCDEF" : "0123456789abcdef";
     do { tmp[i++] = dig[v % base]; v /= base; } while (v);
-    if (neg) tmp[i++] = '-';
-    while (i < width) tmp[i++] = pad;
+    if (neg && pad == '0') { while (i < width - 1 && i < 22) tmp[i++] = '0'; tmp[i++] = '-'; }
+    else {
+        if (neg) tmp[i++] = '-';
+        while (!left && i < width && i < 23) tmp[i++] = pad;
+    }
+    int n = i;
     while (i) put(o, tmp[--i]);
+    while (left && n++ < width) put(o, ' ');
 }
 int kvsnprintf(char *buf, size_t n, const char *fmt, va_list ap) {
     outbuf_t o = {buf, n, 0};
@@ -87,27 +92,33 @@ int kvsnprintf(char *buf, size_t n, const char *fmt, va_list ap) {
         if (*fmt != '%') { put(&o, *fmt); continue; }
         fmt++;
         char pad = ' ';
-        int width = 0, ll = 0;
-        if (*fmt == '0') { pad = '0'; fmt++; }
+        int width = 0, ll = 0, left = 0;
+        for (;; fmt++) {
+            if (*fmt == '-') left = 1;
+            else if (*fmt == '0') pad = '0';
+            else break;
+        }
+        if (left) pad = ' ';
         while (*fmt >= '0' && *fmt <= '9') width = width * 10 + (*fmt++ - '0');
         while (*fmt == 'l') { ll++; fmt++; }
         switch (*fmt) {
         case 'd': case 'i': {
             long long v = ll >= 2 ? va_arg(ap, long long) : va_arg(ap, int);
-            put_num(&o, v < 0 ? -(unsigned long long)v : (unsigned long long)v, 10, v < 0, width, pad, 0);
+            put_num(&o, v < 0 ? -(unsigned long long)v : (unsigned long long)v, 10, v < 0, width, pad, 0, left);
             break;
         }
-        case 'u': put_num(&o, ll >= 2 ? va_arg(ap, unsigned long long) : va_arg(ap, unsigned), 10, 0, width, pad, 0); break;
-        case 'x': put_num(&o, ll >= 2 ? va_arg(ap, unsigned long long) : va_arg(ap, unsigned), 16, 0, width, pad, 0); break;
-        case 'X': put_num(&o, ll >= 2 ? va_arg(ap, unsigned long long) : va_arg(ap, unsigned), 16, 0, width, pad, 1); break;
-        case 'p': put(&o, '0'); put(&o, 'x'); put_num(&o, (uintptr_t)va_arg(ap, void *), 16, 0, 8, '0', 0); break;
+        case 'u': put_num(&o, ll >= 2 ? va_arg(ap, unsigned long long) : va_arg(ap, unsigned), 10, 0, width, pad, 0, left); break;
+        case 'x': put_num(&o, ll >= 2 ? va_arg(ap, unsigned long long) : va_arg(ap, unsigned), 16, 0, width, pad, 0, left); break;
+        case 'X': put_num(&o, ll >= 2 ? va_arg(ap, unsigned long long) : va_arg(ap, unsigned), 16, 0, width, pad, 1, left); break;
+        case 'p': put(&o, '0'); put(&o, 'x'); put_num(&o, (uintptr_t)va_arg(ap, void *), 16, 0, 8, '0', 0, 0); break;
         case 'c': put(&o, (char)va_arg(ap, int)); break;
         case 's': {
             const char *s = va_arg(ap, const char *);
             if (!s) s = "(null)";
             int len = (int)strlen(s);
-            for (int i = len; i < width; i++) put(&o, ' ');
+            if (!left) for (int i = len; i < width; i++) put(&o, ' ');
             while (*s) put(&o, *s++);
+            if (left) for (int i = len; i < width; i++) put(&o, ' ');
             break;
         }
         case '%': put(&o, '%'); break;

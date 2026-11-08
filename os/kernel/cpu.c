@@ -129,17 +129,3 @@ void cpu_name(char *out) {
     memmove(out, p, strlen(p) + 1);
 }
 
-/* ---- power ---- */
-void power_off(void) {
-    cli();
-    outw(0x604, 0x2000);  /* QEMU (q35 / newer) */
-    outw(0xB004, 0x2000); /* Bochs, older QEMU */
-    outw(0x4004, 0x3400); /* VirtualBox */
-    for (;;) hlt();
-}
-void reboot(void) {
-    cli();
-    for (int i = 0; i < 100000 && (inb(0x64) & 2); i++) {}
-    outb(0x64, 0xFE);
-    for (;;) hlt();
-}

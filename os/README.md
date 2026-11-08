@@ -29,6 +29,9 @@ this folder and were written for StreakOS.
 * **Window management:** drag, resize from any edge, double-click the title
   bar to maximise, drag to the top or sides to snap (with an animated
   preview), and drag a maximised window down to restore it under the cursor.
+* **Files and settings that persist.** With a virtual hard disk attached,
+  StreakOS keeps your files, theme, accent, wallpaper and animation speed
+  across reboots (see [Storage](#storage)).
 * **Seamless mouse in VMs.** StreakOS speaks the VMware/QEMU/VirtualBox
   absolute-pointer protocol, so the cursor follows your Windows mouse without
   being captured. It falls back to a normal PS/2 mouse with acceleration
@@ -38,9 +41,9 @@ this folder and were written for StreakOS.
 
 | App | What it does |
 |---|---|
-| **Terminal** | Shell with history, Tab completion and ~25 commands (`help`, `ls`, `cat`, `write`, `edit`, `open`, `ps`, `kill`, `calc`, `neofetch`, `theme`, `wallpaper`, `reboot`, `shutdown`, ...) |
+| **Terminal** | Shell with history, Tab completion, Ctrl+V paste, line wrapping and ~28 commands (`help`, `ls`, `cat`, `write`, `rm`, `edit`, `open`, `ps`, `kill`, `calc`, `disk`, `neofetch`, `theme`, `wallpaper`, `anim`, `reboot`, `shutdown`, ...) |
 | **Files** | Browse, create and delete files; double-click opens them in Notes |
-| **Notes** | Text editor with caret navigation, auto-indent, Ctrl+S, autosave on close |
+| **Notes** | Text editor: selection with Shift+arrows, mouse drag or double-click, Ctrl+A/C/X/V, undo/redo (Ctrl+Z/Y), word jumps (Ctrl+arrows), smart Home, auto-indent, Ctrl+S, autosave on close |
 | **Paint** | Smooth anti-aliased brush, 10 colours, 3 sizes |
 | **Calculator** | Mouse and keyboard input, animated keys, chained operations |
 | **System Monitor** | Live frame-time graph, FPS, memory, CPU model, uptime |
@@ -58,19 +61,29 @@ this folder and were written for StreakOS.
 | <kbd>Alt</kbd>+<kbd>↓</kbd> | Restore, or minimise |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>T</kbd> | New Terminal |
 
+Caps Lock, Num Lock (with keyboard LEDs) and the numeric keypad work. Hover
+over a window edge to get a resize cursor.
+
 ## Run it on Windows
 
 Get `streakos.iso`: download the **streakos-iso** artifact from the
 **StreakOS** GitHub Actions workflow, or [build it](#build-it).
 
 ### VirtualBox (easiest)
-1. *New* → Type **Other**, Version **Other/Unknown**, 256 MB RAM or more, no disk needed.
+1. *New* → Type **Other**, Version **Other/Unknown**, 256 MB RAM.
+   Let it create a small virtual hard disk (any size from 4 MB): StreakOS keeps
+   your files there. The disk must be on the **IDE** controller, which is the
+   default for this OS type.
 2. *Settings → Display*: Graphics Controller **VBoxVGA** or **VMSVGA**, 16 MB+ video memory.
 3. *Settings → Storage*: attach `streakos.iso` to the optical drive. Start.
 
+At boot a menu offers the default resolution (1280×800), Full HD, 1024×768
+and a safe 800×600 mode. It starts the default after 3 seconds.
+
 ### QEMU for Windows
 ```powershell
-qemu-system-x86_64 -cdrom streakos.iso -m 256M -vga std
+qemu-img create -f raw disk.img 32M        # once: a blank disk for your files
+qemu-system-x86_64 -cdrom streakos.iso -drive file=disk.img,format=raw,if=ide -boot d -m 256M -vga std
 # add  -accel whpx  for hardware acceleration (requires Windows Hypervisor Platform)
 ```
 
@@ -85,6 +98,18 @@ StreakOS needs PS/2 input or the firmware's USB legacy emulation for keyboard
 and mouse. Many laptops with only USB input won't respond yet (see
 limitations).
 
+## Storage
+
+StreakOS stores files on an IDE/ATA disk using its own simple format
+(StreakFS: 32 files, up to 64 KiB each). On boot it looks for a disk that
+either already holds StreakFS or is **completely blank** (its first 32 KiB are
+zero, as on a new virtual disk) and formats that one. **It never writes to a
+disk with any other content**, so an existing Windows, Linux or data disk is
+never touched. Without a suitable disk everything still works, and files stay
+in memory until shutdown. Settings → bottom of the page and the `disk`
+command show which mode is active. Files whose names start with `.` (like
+`.settings`) are hidden from Files and Start; `ls -a` shows them.
+
 ## Build it
 
 On Linux, or in **WSL** on Windows (`wsl --install -d Ubuntu`):
@@ -92,8 +117,9 @@ On Linux, or in **WSL** on Windows (`wsl --install -d Ubuntu`):
 ```bash
 sudo apt install build-essential nasm grub-pc-bin grub-efi-amd64-bin grub-common xorriso mtools qemu-system-x86
 make -C os          # -> os/build/streakos.iso
-make -C os run      # boot it in QEMU
+make -C os run      # boot it in QEMU with a persistent disk (os/build/disk.img)
 os/tools/smoke_test.sh os/build/streakos.iso   # headless BIOS + UEFI boot check
+os/tools/e2e.sh os/build/streakos.iso          # drives every app, reboots, checks persistence
 ```
 
 ## How it's built
@@ -109,7 +135,9 @@ kernel/gfx.c      rasteriser: AA shapes, blending, rounded/scaled blits, shadows
 kernel/wm.c       compositor, damage tracking, window lifecycle and animations, input routing
 kernel/shell.c    theme, wallpaper generator, icons, taskbar, Start menu, toasts
 kernel/anim.c     easing curves (cubic, quint, back, spring)
-kernel/fs.c       in-memory file system
+kernel/fs.c       file table, clipboard
+kernel/storage.c  ATA PIO driver and StreakFS persistence
+kernel/acpi.c     ACPI shutdown (S5) and reset, with fallbacks
 apps/*.c          the apps; each is an app_t with init/paint/key/mouse/tick/close callbacks
 tools/genfont.py  rasterises the fonts into kernel/fontdata.h (output is committed)
 ```
@@ -126,8 +154,10 @@ StreakOS is a real OS but a young one. It does not replace Windows.
 
 * 32-bit, single core, everything runs in ring 0 with no memory protection
   between apps (cooperative: apps are callbacks in the compositor loop).
-* Files live in RAM and are lost on shutdown. There are no disk, USB,
-  network or sound drivers yet.
+* Storage needs an IDE/ATA (or IDE-compatible) disk. Most VMs have one. Many
+  modern PCs only expose AHCI/NVMe, and there StreakOS keeps files in memory.
+* No USB stack: on real hardware keyboard and mouse rely on PS/2 or the
+  firmware's USB legacy emulation. No network or sound drivers.
 * Graphics are software-rendered into the firmware framebuffer, so the
   resolution is whatever GRUB sets (1280×800 requested).
 * It can't run Windows programs.

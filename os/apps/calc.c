@@ -13,6 +13,7 @@ static const char *labels[20] = {"C", "+/-", "%", "/", "7", "8", "9", "x", "4", 
 static void c_init(window_t *w) {
     calc_t *c = kzalloc(sizeof *c);
     w->data = c;
+    if (!c) return;
     strcpy(c->disp, "0");
     c->fresh = 1;
     c->hover = c->pressed = -1;
@@ -53,6 +54,7 @@ static void press(window_t *w, int i) {
     } else if (!strcmp(l, "<")) {
         size_t n = strlen(c->disp);
         if (!c->fresh && n > 1) c->disp[n - 1] = 0; else { strcpy(c->disp, "0"); c->fresh = 1; }
+        if (!strcmp(c->disp, "-")) { strcpy(c->disp, "0"); c->fresh = 1; }
     } else if (!strcmp(l, "+/-")) {
         fmt_double(c->disp, sizeof c->disp, -cur);
     } else if (!strcmp(l, "%")) {

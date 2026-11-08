@@ -13,7 +13,8 @@ os.makedirs(outdir, exist_ok=True)
 sock = os.path.join(outdir, "mon.sock")
 if os.path.exists(sock):
     os.remove(sock)
-q = subprocess.Popen(["qemu-system-x86_64", "-cdrom", iso, "-m", "256M", "-vga", "std",
+extra = ["-drive", "file=%s,format=raw,if=ide,index=0" % os.environ["DISK"], "-boot", "d"] if os.environ.get("DISK") else []
+q = subprocess.Popen(["qemu-system-x86_64", *extra, "-cdrom", iso, "-m", "256M", "-vga", "std",
                       "-display", "none", "-serial", "file:" + os.path.join(outdir, "serial.log"),
                       "-monitor", "unix:%s,server,nowait" % sock, *(["-machine", "vmport=off"] if os.environ.get("VMPORT") != "1" else []), "-debugcon", "file:" + os.path.join(outdir, "debug.log")])
 for _ in range(100):
@@ -25,6 +26,8 @@ s.connect(sock)
 s.settimeout(0.3)
 
 def mon(cmd, delay=0.05):
+    if q.poll() is not None:
+        raise OSError("QEMU has exited")
     s.sendall((cmd + "\n").encode())
     time.sleep(delay)
     try:
@@ -73,7 +76,12 @@ for line in open(script):
         mon("mouse_button 1")
     elif c == "up":
         mon("mouse_button 0")
+    elif c == "reset":
+        mon("system_reset")
     elif c == "wheel":
         mon("mouse_move 0 0 %s" % p[1])
-mon("quit")
+try:
+    mon("quit")
+except OSError:
+    pass  # the guest already powered off
 q.wait(timeout=10)

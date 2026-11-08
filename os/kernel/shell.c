@@ -8,6 +8,7 @@ const uint32_t g_accents[6] = {RGB(0x3D, 0x9B, 0xFF), RGB(0x8B, 0x5C, 0xF6), RGB
                                RGB(0xF9, 0x73, 0x16), RGB(0x10, 0xB9, 0x81), RGB(0xEA, 0xB3, 0x08)};
 
 static surface_t *wall, *wall_blur;
+void shell_invalidate_menu(void);
 
 void theme_set(int dark, int accent) {
     theme_t *t = &g_theme;
@@ -117,6 +118,7 @@ void shell_generate_wallpaper(int idx) {
     box_blur(lo, 10);
     upscale(lo, wall_blur);
     surface_free(lo);
+    shell_invalidate_menu();
     wm_damage_all();
 }
 
@@ -364,7 +366,7 @@ static void render_menu(void) {
     draw_text(menu, 36, 322, "Recommended", &font_bold, t->text);
     int shown = 0;
     for (int i = 0; i < FS_MAX_FILES && shown < 4; i++) {
-        file_t *f = fs_list(i);
+        file_t *f = fs_list_visible(i);
         if (!f) break;
         if (qlen && !str_contains_ci(f->name, query)) continue;
         rect_t c = file_cell(shown);
@@ -417,6 +419,7 @@ static rect_t menu_rect_now(uint32_t now) {
     return b;
 }
 int shell_start_open(void) { return menu_open; }
+void shell_invalidate_menu(void) { menu_dirty = 1; }
 
 void shell_toggle_start(void) {
     float cur = menu_k(ticks_ms());
@@ -444,10 +447,10 @@ static int menu_hit(int lx, int ly) {
 
 static void menu_activate(int h) {
     if (h >= 0 && h < nvisible) { shell_toggle_start(); wm_open(visible[h]); }
-    else if (h >= 100 && h < 104) { file_t *f = fs_list(recommended[h - 100]); shell_toggle_start(); if (f) wm_open_file_in_notes(f->name); }
+    else if (h >= 100 && h < 104) { file_t *f = fs_list_visible(recommended[h - 100]); shell_toggle_start(); if (f) wm_open_file_in_notes(f->name); }
     else if (h == 200) { menu_power = !menu_power; menu_dirty = 1; }
-    else if (h == 201) reboot();
-    else if (h == 202) power_off();
+    else if (h == 201) wm_shutdown(1);
+    else if (h == 202) wm_shutdown(0);
 }
 
 /* ---- toasts ---- */
@@ -631,7 +634,36 @@ void shell_tick(uint32_t now) {
     }
 }
 
+/* ---- persisted settings (.settings) ---- */
+static int cfg_int(const char *data, const char *key, int def) {
+    size_t kl = strlen(key);
+    for (const char *p = data; p && *p; p = strchr(p, '\n') ? strchr(p, '\n') + 1 : 0) {
+        if (!strncmp(p, key, kl) && p[kl] == '=') {
+            int v = 0, neg = p[kl + 1] == '-';
+            for (const char *q = p + kl + 1 + neg; *q >= '0' && *q <= '9'; q++) v = v * 10 + (*q - '0');
+            return neg ? -v : v;
+        }
+    }
+    return def;
+}
+void settings_save(void) {
+    char buf[128];
+    int n = ksnprintf(buf, sizeof buf, "dark=%d\naccent=%d\nwallpaper=%d\nanim=%d\n", g_theme.dark, g_accent_idx, g_wallpaper_idx, g_anim_speed_pct);
+    fs_write(".settings", buf, n);
+}
+
 void shell_init(void) {
     nslots = 1 + g_app_count;
-    shell_generate_wallpaper(0);
+    file_t *f = fs_find(".settings");
+    int dark = 1, accent = 0, wp = 0, anim = 100;
+    if (f) {
+        dark = cfg_int(f->data, "dark", 1) != 0;
+        accent = CLAMP(cfg_int(f->data, "accent", 0), 0, 5);
+        wp = CLAMP(cfg_int(f->data, "wallpaper", 0), 0, 3);
+        anim = cfg_int(f->data, "anim", 100);
+        if (anim != 0 && anim != 50 && anim != 100) anim = 100;
+    }
+    theme_set(dark, accent);
+    g_anim_speed_pct = anim;
+    shell_generate_wallpaper(wp);
 }

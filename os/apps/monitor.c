@@ -6,6 +6,7 @@ typedef struct { uint32_t last; char cpu[48]; } mon_t;
 static void m_init(window_t *w) {
     mon_t *m = kzalloc(sizeof *m);
     w->data = m;
+    if (!m) return;
     cpu_name(m->cpu);
 }
 
@@ -56,14 +57,15 @@ static void m_paint(window_t *w, surface_t *s) {
     rect_t ir = mkrect(16, 330, W, s->h - 346);
     card(s, ir, "System");
     uint32_t sec = ticks_ms() / 1000;
-    const char *keys[5] = {"Processor", "Display", "Uptime", "Windows", "Pointer"};
-    char vals[5][64];
+    const char *keys[6] = {"Processor", "Display", "Uptime", "Windows", "Pointer", "Storage"};
+    char vals[6][64];
     strlcpy(vals[0], m->cpu, 64);
     ksnprintf(vals[1], 64, "%d x %d, 32-bit", SCR_W, SCR_H);
     ksnprintf(vals[2], 64, "%u:%02u:%02u", sec / 3600, (sec / 60) % 60, sec % 60);
     ksnprintf(vals[3], 64, "%d open", wm_window_count());
     strlcpy(vals[4], mouse_is_absolute() ? "Absolute (VM integration)" : "PS/2 mouse", 64);
-    for (int i = 0; i < 5 && 36 + i * 24 < ir.h - 10; i++) {
+    strlcpy(vals[5], storage_persistent() ? "Disk (files persist)" : "Memory only", 64);
+    for (int i = 0; i < 6 && 36 + i * 24 < ir.h - 10; i++) {
         draw_text(s, ir.x + 16, ir.y + 36 + i * 24, keys[i], &font_ui, t->text_dim);
         draw_text(s, ir.x + 130, ir.y + 36 + i * 24, vals[i], &font_ui, t->text);
     }

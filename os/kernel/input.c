@@ -3,9 +3,12 @@
 #include "kernel.h"
 
 /* ---- keyboard ---- */
+static void mouse_byte(uint8_t b);
 static key_event_t kq[128];
 static volatile int kq_head, kq_tail;
 static int mods, extended;
+static int caps_lock, num_lock = 1;
+static volatile int leds_dirty = 1;
 
 static const char map_lo[128] = {
     0, 27, '1','2','3','4','5','6','7','8','9','0','-','=', '\b', '\t',
@@ -29,6 +32,7 @@ static void push_key(int k) {
 }
 
 static void kbd_byte(uint8_t sc) {
+    if (sc == 0xFA || sc == 0xFE) return; /* ACK / resend from LED updates */
     if (sc == 0xE0) { extended = 1; return; }
     int rel = sc & 0x80;
     sc &= 0x7F;
@@ -58,6 +62,20 @@ static void kbd_byte(uint8_t sc) {
     if (sc == 0x1D) { mods = rel ? mods & ~MOD_CTRL : mods | MOD_CTRL; return; }
     if (sc == 0x38) { mods = rel ? mods & ~MOD_ALT : mods | MOD_ALT; return; }
     if (rel) return;
+    if (sc == 0x3A) { caps_lock = !caps_lock; leds_dirty = 1; return; }
+    if (sc == 0x45) { num_lock = !num_lock; leds_dirty = 1; return; }
+    if (sc == 0x46) return; /* scroll lock */
+    if (sc == 0x37) { push_key('*'); return; } /* keypad * */
+    if (sc >= 0x47 && sc <= 0x53) {
+        /* keypad: digits with Num Lock on, navigation with it off */
+        static const char digits[] = "789-456+1230.";
+        static const int nav[] = {KEY_HOME, KEY_UP, KEY_PGUP, '-', KEY_LEFT, 0, KEY_RIGHT, '+', KEY_END, KEY_DOWN, KEY_PGDN, 0, KEY_DELETE};
+        int i = sc - 0x47;
+        if (digits[i] == '-' || digits[i] == '+') push_key(digits[i]);
+        else if (num_lock && !(mods & MOD_SHIFT)) push_key(digits[i]);
+        else if (nav[i]) push_key(nav[i]);
+        return;
+    }
     if (sc >= 0x3B && sc <= 0x44) { push_key(KEY_F1 + sc - 0x3B); return; }
     if (sc == 0x57) { push_key(KEY_F11); return; }
     if (sc == 0x58) { push_key(KEY_F12); return; }
@@ -67,11 +85,36 @@ static void kbd_byte(uint8_t sc) {
     case 0x0F: push_key(KEY_TAB); return;
     case 0x1C: push_key(KEY_ENTER); return;
     }
-    char c = (mods & MOD_SHIFT) ? map_hi[sc] : map_lo[sc];
+    int shift = (mods & MOD_SHIFT) != 0;
+    char lo = map_lo[sc];
+    if (caps_lock && lo >= 'a' && lo <= 'z') shift = !shift; /* Caps Lock only affects letters */
+    char c = shift ? map_hi[sc] : lo;
     if (c) push_key(c);
 }
 
+/* Send the lock-key LED state. Runs from the main loop with interrupts off so
+ * the keyboard's ACK bytes can be consumed here instead of by the IRQ handler. */
+static void update_leds(void) {
+    leds_dirty = 0;
+    uint8_t v = (caps_lock ? 4 : 0) | (num_lock ? 2 : 0);
+    __asm__ volatile("pushf; cli");
+    for (int pass = 0; pass < 2; pass++) {
+        for (int i = 0; i < 100000 && (inb(0x64) & 2); i++) {}
+        outb(0x60, pass == 0 ? 0xED : v);
+        for (int i = 0; i < 200000; i++) {
+            uint8_t st = inb(0x64);
+            if (!(st & 1)) continue;
+            uint8_t b = inb(0x60);
+            if (st & 0x20) { mouse_byte(b); continue; }
+            if (b == 0xFA || b == 0xFE) break;
+            kbd_byte(b);
+        }
+    }
+    __asm__ volatile("popf");
+}
+
 int keyboard_poll(key_event_t *ev) {
+    if (leds_dirty) update_leds();
     if (kq_tail == kq_head) return 0;
     *ev = kq[kq_tail];
     kq_tail = (kq_tail + 1) & 127;
@@ -93,8 +136,8 @@ static void kbd_irq(regs_t *r) {
     while (inb(0x64) & 1) {
         uint8_t st = inb(0x64);
         uint8_t b = inb(0x60);
-        if (st & 0x20) continue; /* mouse byte arrived here; drop */
-        kbd_byte(b);
+        if (st & 0x20) mouse_byte(b);
+        else kbd_byte(b);
     }
 }
 
@@ -159,25 +202,29 @@ static void vmmouse_drain(void) {
     }
 }
 
+static void mouse_byte(uint8_t b) {
+    /* PS/2 packets are decoded even with vmmouse on: some hosts keep sending
+     * relative motion, and the absolute reports that follow override it. */
+    if (pkt_idx == 0 && !(b & 0x08)) return; /* resync on the always-set bit 3 */
+    packet[pkt_idx++] = b;
+    if (pkt_idx < pkt_len) return;
+    pkt_idx = 0;
+    if (packet[0] & 0xC0) return; /* overflow */
+    mouse_event_t e = {0};
+    e.dx = (int)packet[1] - ((packet[0] & 0x10) ? 256 : 0);
+    e.dy = -((int)packet[2] - ((packet[0] & 0x20) ? 256 : 0));
+    e.buttons = packet[0] & 7;
+    if (pkt_len == 4) e.wheel = (int8_t)(packet[3] << 4) >> 4; /* 4-bit signed */
+    push_mouse(&e);
+}
+
 static void mouse_irq(regs_t *r) {
     (void)r;
     while (inb(0x64) & 1) {
         uint8_t st = inb(0x64);
         uint8_t b = inb(0x60);
-        if (!(st & 0x20)) { kbd_byte(b); continue; }
-        /* PS/2 packets are decoded even with vmmouse on: some hosts keep sending
-         * relative motion, and the absolute reports that follow override it. */
-        if (pkt_idx == 0 && !(b & 0x08)) continue; /* resync */
-        packet[pkt_idx++] = b;
-        if (pkt_idx < pkt_len) continue;
-        pkt_idx = 0;
-        if (packet[0] & 0xC0) continue; /* overflow */
-        mouse_event_t e = {0};
-        e.dx = (int)packet[1] - ((packet[0] & 0x10) ? 256 : 0);
-        e.dy = -((int)packet[2] - ((packet[0] & 0x20) ? 256 : 0));
-        e.buttons = packet[0] & 7;
-        if (pkt_len == 4) e.wheel = (int8_t)packet[3];
-        push_mouse(&e);
+        if (st & 0x20) mouse_byte(b);
+        else kbd_byte(b);
     }
     if (vm_abs) vmmouse_drain();
 }

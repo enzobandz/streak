@@ -30,7 +30,7 @@ static void reset(snake_t *s) {
     s->last_step = ticks_ms();
     place_food(s);
 }
-static void k_init(window_t *w) { snake_t *s = kzalloc(sizeof *s); w->data = s; reset(s); s->paused = 1; }
+static void k_init(window_t *w) { snake_t *s = kzalloc(sizeof *s); w->data = s; if (!s) return; reset(s); s->paused = 1; }
 
 static void k_paint(window_t *w, surface_t *sf) {
     snake_t *s = w->data;

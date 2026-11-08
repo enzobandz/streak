@@ -15,7 +15,8 @@ static int ndmg;
 
 /* pointer */
 static int mx, my, mbuttons;
-static int cur_drawn_x = -100, cur_drawn_y = -100;
+static int cur_drawn_x = -100, cur_drawn_y = -100, cur_kind, cur_drawn_kind;
+enum { CUR_ARROW, CUR_EW, CUR_NS, CUR_NWSE, CUR_NESW };
 
 /* interaction */
 enum { DRAG_NONE, DRAG_MOVE, DRAG_RESIZE, DRAG_CONTENT, DRAG_BUTTON };
@@ -103,13 +104,18 @@ static void focus_top_visible(void) {
     shell_windows_changed();
 }
 
-static void resize_surface(window_t *w, int nw, int nh) {
-    if (w->surf && w->surf->w == nw && w->surf->h == nh) return;
+/* Allocate the new surface before freeing the old one, so a failed
+ * allocation leaves the window exactly as it was. Returns 0 on failure. */
+static int resize_surface(window_t *w, int nw, int nh) {
+    if (w->surf && w->surf->w == nw && w->surf->h == nh) return 1;
+    surface_t *ns = surface_new(nw, nh);
+    if (!ns) { klog("wm: out of memory for a %dx%d window\n", nw, nh); return 0; }
     surface_free(w->surf);
-    w->surf = surface_new(nw, nh);
+    w->surf = ns;
     w->w = nw;
     w->h = nh;
     w->dirty = 1;
+    return 1;
 }
 
 static void start_anim(window_t *w, int state, rect_t from, rect_t to, float af, float at, uint32_t dur, int ease) {
@@ -141,6 +147,7 @@ window_t *wm_open(const app_t *app) {
             }
     if (nwin >= MAX_WIN) { toast("Too many windows", "Close a window to open another one."); return 0; }
     window_t *w = kzalloc(sizeof *w);
+    if (!w) { toast("Not enough memory", "Close some windows and try again."); return 0; }
     w->id = next_id++;
     w->app = app;
     strlcpy(w->title, app->name, sizeof w->title);
@@ -154,9 +161,15 @@ window_t *wm_open(const app_t *app) {
     w->x = CLAMP(w->x, 8, SCR_W - fw - 8);
     w->y = CLAMP(w->y, 8, wa.h - fh - 8);
     w->hover_btn = w->press_btn = -1;
-    resize_surface(w, fw, fh);
-    zorder[nwin++] = w;
+    if (!resize_surface(w, fw, fh)) { kfree(w); toast("Not enough memory", "Close some windows and try again."); return 0; }
     if (app->init) app->init(w);
+    if (app->init && !w->data) { /* every app allocates its state in init */
+        surface_free(w->surf);
+        kfree(w);
+        toast("Not enough memory", "Close some windows and try again.");
+        return 0;
+    }
+    zorder[nwin++] = w;
     start_anim(w, WS_OPENING, scale_rect(win_rect(w), 0.90f), win_rect(w), 0, 255, 280, EASE_OUT_QUINT);
     wm_focus(w);
     return w;
@@ -179,9 +192,15 @@ static void destroy(window_t *w) {
 
 void wm_close(window_t *w) {
     if (!w || w->state == WS_CLOSING) return;
+    /* Destruction always happens later in wm_frame (even with animations off),
+     * because wm_close is often called from inside the window's own handlers. */
     start_anim(w, WS_CLOSING, win_rect(w), scale_rect(win_rect(w), 0.92f), 255, 0, 170, EASE_OUT_CUBIC);
-    if (!w->anim.active) { destroy(w); return; }
-    if (focused == w) { focused = 0; for (int i = nwin - 1; i >= 0; i--) if (zorder[i] != w && !zorder[i]->minimized) { wm_focus(zorder[i]); break; } }
+    if (drag_win == w) { drag_win = 0; drag_mode = DRAG_NONE; }
+    if (focused == w) {
+        focused = 0;
+        for (int i = nwin - 1; i >= 0; i--)
+            if (zorder[i] != w && !zorder[i]->minimized && zorder[i]->state != WS_CLOSING) { wm_focus(zorder[i]); break; }
+    }
     shell_windows_changed();
 }
 
@@ -201,10 +220,10 @@ static void restore_from_min(window_t *w) {
 static void morph_to(window_t *w, rect_t target) {
     rect_t from = win_rect(w);
     if (from.x == target.x && from.y == target.y && from.w == target.w && from.h == target.h) return;
+    if (!resize_surface(w, target.w, target.h)) return;
     wm_damage(with_shadow(from));
     w->x = target.x;
     w->y = target.y;
-    resize_surface(w, target.w, target.h);
     start_anim(w, WS_MORPH, from, target, 255, 255, 260, EASE_OUT_QUINT);
 }
 
@@ -323,7 +342,30 @@ static const char *cursor_art[] = {
 };
 #define CUR_W 14
 #define CUR_H 21
+/* double-headed resize arrow centred on (x, y) along direction (dx, dy) */
+static void draw_resize_cursor(int x, int y, int dx, int dy) {
+    int L = 8, H = 4;
+    for (int pass = 0; pass < 2; pass++) {
+        uint32_t c = pass ? 0xFFFFFFFF : RGB(20, 20, 20);
+        int th = pass ? 2 : 4;
+        draw_line(g_screen, x - dx * L, y - dy * L, x + dx * L, y + dy * L, th, c);
+        for (int sgn = -1; sgn <= 1; sgn += 2) {
+            int tx = x + sgn * dx * L, ty = y + sgn * dy * L;
+            /* arrowhead: two short strokes back from the tip */
+            int bx = -sgn * dx * H, by = -sgn * dy * H;
+            draw_line(g_screen, tx, ty, tx + bx - by, ty + by + bx, th, c);
+            draw_line(g_screen, tx, ty, tx + bx + by, ty + by - bx, th, c);
+        }
+    }
+}
+
 static void draw_cursor(int x, int y) {
+    switch (cur_kind) {
+    case CUR_EW: draw_resize_cursor(x, y, 1, 0); return;
+    case CUR_NS: draw_resize_cursor(x, y, 0, 1); return;
+    case CUR_NWSE: draw_resize_cursor(x, y, 1, 1); return;
+    case CUR_NESW: draw_resize_cursor(x, y, 1, -1); return;
+    }
     /* soft shadow then outline + fill */
     for (int pass = 0; pass < 2; pass++)
         for (int r = 0; r < 20; r++)
@@ -400,7 +442,7 @@ static void update_snap_preview(int target) {
 
 static void move_window(window_t *w, int nx, int ny) {
     wm_damage(with_shadow(win_rect(w)));
-    w->x = nx;
+    w->x = CLAMP(nx, 100 - w->w, SCR_W - 100); /* always leave part of the window grabbable */
     w->y = CLAMP(ny, 0, SCR_H - TASKBAR_H - TITLE_H);
     wm_damage(with_shadow(win_rect(w)));
 }
@@ -416,9 +458,9 @@ static void handle_mouse_event(int ev, int wheel, int changed) {
                 if (ABS(my - drag_oy - w->y) < 8 && ABS(mx - drag_ox - w->x) < 8) return;
                 rect_t rs = w->restore;
                 float rel = (float)(mx - w->x) / w->w;
-                w->maximized = w->snapped = 0;
                 wm_damage(with_shadow(win_rect(w)));
-                resize_surface(w, rs.w, rs.h);
+                if (!resize_surface(w, rs.w, rs.h)) return;
+                w->maximized = w->snapped = 0;
                 w->x = mx - (int)(rel * rs.w);
                 w->y = my - drag_oy;
                 drag_ox = mx - w->x;
@@ -448,9 +490,11 @@ static void handle_mouse_event(int ev, int wheel, int changed) {
             if (drag_edges & 8) r.h = MAX(minh, r.h + dy);
             if (drag_edges & 1) { int nw = MAX(minw, r.w - dx); r.x += r.w - nw; r.w = nw; }
             if (drag_edges & 4) { int nh = MAX(minh, r.h - dy); r.y += r.h - nh; r.h = nh; }
+            if (r.y < 0) { r.h += r.y; r.y = 0; } /* keep the title bar on screen */
+            if (r.h < minh) return;
             wm_damage(with_shadow(win_rect(w)));
+            if (!resize_surface(w, r.w, r.h)) return;
             w->x = r.x; w->y = r.y;
-            resize_surface(w, r.w, r.h);
             wm_damage(with_shadow(win_rect(w)));
         } else if (ev == ME_UP) { drag_mode = DRAG_NONE; drag_win = 0; }
         return;
@@ -555,11 +599,25 @@ static void process_input(void) {
         if (released) handle_mouse_event(ME_UP, 0, released);
         if (me.wheel) handle_mouse_event(ME_WHEEL, me.wheel, 0);
     }
-    if (moved || cur_drawn_x != mx || cur_drawn_y != my) {
-        wm_damage(mkrect(cur_drawn_x, cur_drawn_y, CUR_W + 2, CUR_H + 2));
-        wm_damage(mkrect(mx, my, CUR_W + 2, CUR_H + 2));
+    /* pick the pointer shape: resize arrows over (or while dragging) window edges */
+    int edges = 0;
+    if (drag_mode == DRAG_RESIZE) edges = drag_edges;
+    else if (drag_mode == DRAG_NONE && !shell_start_open() && my < SCR_H - TASKBAR_H) {
+        window_t *hw = window_at(mx, my);
+        if (hw) edges = edges_at(hw, mx, my);
+    }
+    int kind = CUR_ARROW;
+    if ((edges & 3) && (edges & 12)) kind = ((edges & 1) != 0) == ((edges & 4) != 0) ? CUR_NWSE : CUR_NESW;
+    else if (edges & 3) kind = CUR_EW;
+    else if (edges & 12) kind = CUR_NS;
+    if (moved || cur_drawn_x != mx || cur_drawn_y != my || kind != cur_drawn_kind) {
+        cur_kind = kind;
+        /* one box covers every cursor shape: the arrow extends down-right, resize arrows are centred */
+        wm_damage(mkrect(cur_drawn_x - 14, cur_drawn_y - 14, CUR_W + 30, CUR_H + 30));
+        wm_damage(mkrect(mx - 14, my - 14, CUR_W + 30, CUR_H + 30));
         cur_drawn_x = mx;
         cur_drawn_y = my;
+        cur_drawn_kind = kind;
     }
 
     key_event_t ke;
@@ -626,6 +684,8 @@ void wm_frame(uint32_t now) {
 }
 
 void wm_apply_theme(void) {
+    extern void shell_invalidate_menu(void);
+    shell_invalidate_menu();
     for (int i = 0; i < nwin; i++) zorder[i]->dirty = 1;
     wm_damage_all();
 }
@@ -634,6 +694,23 @@ void wm_init(void) {
     mx = SCR_W / 2;
     my = SCR_H / 2;
     wm_damage_all();
+}
+
+/* Shut down or restart: let every app save (Notes autosaves on close), show a
+ * goodbye screen, then switch off. If the firmware ignores the request, say so. */
+void wm_shutdown(int restart) {
+    for (int i = nwin - 1; i >= 0; i--)
+        if (zorder[i]->app->close) { zorder[i]->app->close(zorder[i]); }
+    clip_reset(g_screen);
+    fill_rect(g_screen, mkrect(0, 0, SCR_W, SCR_H), RGB(0x07, 0x08, 0x10));
+    draw_text_centered(g_screen, mkrect(0, SCR_H / 2 - 30, SCR_W, 40), restart ? "Restarting..." : "Shutting down...", &font_title, 0xFFFFFFFF);
+    display_flush(mkrect(0, 0, SCR_W, SCR_H));
+    if (restart) reboot();
+    power_off();
+    fill_rect(g_screen, mkrect(0, 0, SCR_W, SCR_H), RGB(0x07, 0x08, 0x10));
+    draw_text_centered(g_screen, mkrect(0, SCR_H / 2 - 30, SCR_W, 40), "It's now safe to turn off your computer.", &font_title, 0xFFFFFFFF);
+    display_flush(mkrect(0, 0, SCR_W, SCR_H));
+    for (;;) { cli(); hlt(); }
 }
 
 /* Shown on CPU exceptions instead of silently freezing. */

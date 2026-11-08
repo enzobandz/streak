@@ -18,8 +18,10 @@ static rect_t clear_btn(int w) { return mkrect(w - 88, 9, 76, 32); }
 
 static void p_init(window_t *w) {
     paint_t *p = kzalloc(sizeof *p);
-    w->data = p;
+    if (!p) return;
     p->canvas = surface_new(CW, CH);
+    if (!p->canvas) { kfree(p); return; } /* w->data stays NULL: the WM reports out of memory */
+    w->data = p;
     fill_rect(p->canvas, mkrect(0, 0, CW, CH), 0xFFFFFFFF);
     p->color = 7;
     p->size = 1;

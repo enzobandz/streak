@@ -36,11 +36,19 @@ $(ISO): $(KERNEL) grub.cfg
 	cp grub.cfg $(BUILD)/iso/boot/grub/grub.cfg
 	grub-mkrescue -o $@ $(BUILD)/iso 2>/dev/null
 
-run: $(ISO)
-	qemu-system-x86_64 -cdrom $(ISO) -m 256M -serial stdio -vga std
+# A blank disk image: StreakOS formats it on first boot and keeps files on it.
+DISK := $(BUILD)/disk.img
+$(DISK):
+	@mkdir -p $(BUILD)
+	truncate -s 32M $@
 
-run-kvm: $(ISO)
-	qemu-system-x86_64 -enable-kvm -cdrom $(ISO) -m 256M -serial stdio -vga std
+QEMU_ARGS = -cdrom $(ISO) -drive file=$(DISK),format=raw,if=ide,index=0 -boot d -m 256M -serial stdio -vga std
+
+run: $(ISO) $(DISK)
+	qemu-system-x86_64 $(QEMU_ARGS)
+
+run-kvm: $(ISO) $(DISK)
+	qemu-system-x86_64 -enable-kvm $(QEMU_ARGS)
 
 clean:
 	rm -rf $(BUILD)

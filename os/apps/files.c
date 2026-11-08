@@ -5,10 +5,10 @@ typedef struct { int sel, hover; uint32_t last_click; int last_idx, counter; } f
 #define HDR 52
 #define ROW 44
 
-static void f_init(window_t *w) { files_t *f = kzalloc(sizeof *f); w->data = f; f->sel = 0; f->hover = -1; f->last_idx = -1; }
+static void f_init(window_t *w) { files_t *f = kzalloc(sizeof *f); w->data = f; if (!f) return; f->sel = 0; f->hover = -1; f->last_idx = -1; }
 static rect_t new_btn(void) { return mkrect(16, 10, 110, 32); }
 static rect_t del_btn(void) { return mkrect(134, 10, 90, 32); }
-static int count(void) { int n = 0; while (fs_list(n)) n++; return n; }
+static int count(void) { int n = 0; while (fs_list_visible(n)) n++; return n; }
 
 static void f_paint(window_t *w, surface_t *s) {
     files_t *f = w->data;
@@ -23,7 +23,7 @@ static void f_paint(window_t *w, surface_t *s) {
     draw_text(s, 64, HDR + 8, "Name", &font_small, t->text_dim);
     draw_text(s, s->w - 120, HDR + 8, "Size", &font_small, t->text_dim);
     for (int i = 0; i < n; i++) {
-        file_t *fl = fs_list(i);
+        file_t *fl = fs_list_visible(i);
         rect_t r = mkrect(8, HDR + 30 + i * ROW, s->w - 16, ROW - 4);
         if (r.y > s->h) break;
         if (i == f->sel) fill_round_rect(s, r, 8, WITH_ALPHA(t->accent, 0x38));
@@ -59,12 +59,12 @@ static void f_mouse(window_t *w, int x, int y, int b, int ev, int wheel) {
         fs_write(name, "", 0);
         wm_open_file_in_notes(name);
     } else if (h == 1001) {
-        file_t *fl = fs_list(f->sel);
+        file_t *fl = fs_list_visible(f->sel);
         if (fl) fs_remove(fl->name);
         if (f->sel >= count()) f->sel = MAX(0, count() - 1);
     } else if (h >= 0) {
         uint32_t now = ticks_ms();
-        if (h == f->last_idx && now - f->last_click < 450) { file_t *fl = fs_list(h); if (fl) wm_open_file_in_notes(fl->name); }
+        if (h == f->last_idx && now - f->last_click < 450) { file_t *fl = fs_list_visible(h); if (fl) wm_open_file_in_notes(fl->name); }
         f->sel = h;
         f->last_idx = h;
         f->last_click = now;
@@ -77,8 +77,8 @@ static void f_key(window_t *w, key_event_t *e) {
     int n = count();
     if (e->key == KEY_DOWN && f->sel < n - 1) f->sel++;
     else if (e->key == KEY_UP && f->sel > 0) f->sel--;
-    else if (e->key == KEY_ENTER) { file_t *fl = fs_list(f->sel); if (fl) wm_open_file_in_notes(fl->name); }
-    else if (e->key == KEY_DELETE) { file_t *fl = fs_list(f->sel); if (fl) fs_remove(fl->name); if (f->sel >= count()) f->sel = MAX(0, count() - 1); }
+    else if (e->key == KEY_ENTER) { file_t *fl = fs_list_visible(f->sel); if (fl) wm_open_file_in_notes(fl->name); }
+    else if (e->key == KEY_DELETE) { file_t *fl = fs_list_visible(f->sel); if (fl) fs_remove(fl->name); if (f->sel >= count()) f->sel = MAX(0, count() - 1); }
     wm_invalidate(w);
 }
 

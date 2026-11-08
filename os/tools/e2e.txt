@@ -1,0 +1,169 @@
+# End-to-end script for tools/qemu_test.py: exercises every app, the window
+# manager and the shell. tools/e2e.sh checks the serial log afterwards.
+wait 5000
+# --- terminal commands ---
+type help
+key ret
+type ls -a
+key ret
+type write e2e.txt end to end
+key ret
+type cat e2e.txt
+key ret
+type calc (2+3)*4-1/0
+key ret
+type calc 10/4
+key ret
+type neofetch
+key ret
+type ps
+key ret
+type disk
+key ret
+type nosuchcommand
+key ret
+type theme light
+key ret
+type wallpaper 2
+key ret
+wait 800
+type theme dark
+key ret
+type wallpaper 0
+key ret
+wait 800
+shot e2e_terminal
+# --- window management on the terminal ---
+key alt-up
+wait 400
+key alt-left
+wait 400
+key alt-right
+wait 400
+key alt-down
+wait 400
+key alt-down
+wait 400
+key alt-tab
+wait 400
+# --- notes: type, select, copy, paste, undo, redo, save ---
+key meta_l
+wait 300
+type notes
+key ret
+wait 700
+type Line one
+key ret
+type Line two
+key ctrl-a
+key ctrl-c
+key end
+key ctrl-v
+key ctrl-z
+key ctrl-y
+key shift-left
+key shift-left
+key ctrl-x
+key ctrl-s
+wait 300
+shot e2e_notes
+key alt-f4
+wait 400
+# --- calculator keyboard ---
+key meta_l
+wait 300
+type calc
+key ret
+wait 600
+type 12*7=
+type /0=
+key esc
+type 5-8=
+key backspace
+key backspace
+wait 300
+shot e2e_calc
+key alt-f4
+wait 300
+# --- paint with mouse ---
+key meta_l
+wait 300
+type paint
+key ret
+wait 700
+down
+move 60 30
+move 40 -50
+up
+wait 200
+key alt-f4
+wait 300
+# --- files ---
+key meta_l
+wait 300
+type files
+key ret
+wait 600
+key down
+key up
+key alt-f4
+wait 300
+# --- snake ---
+key meta_l
+wait 300
+type snake
+key ret
+wait 600
+key spc
+wait 500
+key up
+wait 300
+key left
+wait 300
+shot e2e_snake
+key alt-f4
+wait 300
+# --- system monitor and settings ---
+key meta_l
+wait 300
+type system
+key ret
+wait 1000
+key alt-f4
+key meta_l
+wait 300
+type settings
+key ret
+wait 800
+wheel 3
+wait 200
+key alt-f4
+wait 300
+# --- drag and resize the terminal with the mouse ---
+move -140 -318
+down
+move 80 60
+up
+wait 200
+# --- animations off: close-from-inside must be safe ---
+key meta_l
+wait 300
+type terminal
+key ret
+wait 600
+type anim off
+key ret
+type exit
+key ret
+wait 300
+key ctrl-alt-t
+wait 200
+type exit
+key ret
+wait 300
+key ctrl-alt-t
+wait 200
+type anim normal
+key ret
+wait 300
+shot e2e_end

@@ -109,14 +109,17 @@ static void run(window_t *w, term_t *t, char *cmd) {
                         "  calc <expr>       e.g. calc (2+3)*7    echo <text>      print text\n"
                         "  date / uptime     time                 mem / sysinfo    system info\n"
                         "  theme dark|light  switch theme         wallpaper <0-3>  change wallpaper\n"
-                        "  neofetch          system summary       reboot / shutdown");
+                        "  disk              storage status       neofetch         system summary\n"
+                        "  anim off|normal|relaxed            animation speed\n"
+                        "  reboot / shutdown");
     } else if (!strcmp(cmd, "clear") || !strcmp(cmd, "cls")) {
         t->n = 0;
     } else if (!strcmp(cmd, "echo")) {
         tputk(t, K_OUT, arg);
     } else if (!strcmp(cmd, "ls") || !strcmp(cmd, "dir")) {
         file_t *f;
-        for (int i = 0; (f = fs_list(i)); i++) tprintf(t, K_OUT, "  %-24s %6u bytes", f->name, (unsigned)f->size);
+        int all = !strcmp(arg, "-a");
+        for (int i = 0; (f = all ? fs_list(i) : fs_list_visible(i)); i++) tprintf(t, K_OUT, "  %-24s %6u bytes", f->name, (unsigned)f->size);
     } else if (!strcmp(cmd, "cat") || !strcmp(cmd, "type")) {
         file_t *f = fs_find(arg);
         if (f) tputk(t, K_OUT, f->data); else tprintf(t, K_ERR, "cat: %s: no such file", arg);
@@ -126,7 +129,7 @@ static void run(window_t *w, term_t *t, char *cmd) {
         if (*text) *text++ = 0;
         if (!*arg) tputk(t, K_ERR, "usage: write <file> <text>");
         else if (fs_write(arg, text, strlen(text))) tprintf(t, K_DIM, "wrote %s", arg);
-        else tputk(t, K_ERR, "write: file system full");
+        else tputk(t, K_ERR, "write: file system full or name too long");
     } else if (!strcmp(cmd, "rm") || !strcmp(cmd, "del")) {
         if (!fs_remove(arg)) tprintf(t, K_ERR, "rm: %s: no such file", arg);
     } else if (!strcmp(cmd, "edit")) {
@@ -164,6 +167,11 @@ static void run(window_t *w, term_t *t, char *cmd) {
     } else if (!strcmp(cmd, "uptime")) {
         uint32_t s = ticks_ms() / 1000;
         tprintf(t, K_OUT, "up %u:%02u:%02u", s / 3600, (s / 60) % 60, s % 60);
+    } else if (!strcmp(cmd, "disk") || !strcmp(cmd, "df")) {
+        tputk(t, K_OUT, storage_status());
+        int n = 0; size_t bytes = 0; file_t *f;
+        for (int i = 0; (f = fs_list(i)); i++) { n++; bytes += f->size; }
+        tprintf(t, K_OUT, "%d of %d files used, %u bytes", n, FS_MAX_FILES, (unsigned)bytes);
     } else if (!strcmp(cmd, "mem") || !strcmp(cmd, "free")) {
         tprintf(t, K_OUT, "heap: %u KiB used of %u KiB", (unsigned)(heap_used() / 1024), (unsigned)(heap_total() / 1024));
     } else if (!strcmp(cmd, "sysinfo") || !strcmp(cmd, "neofetch") || !strcmp(cmd, "uname")) {
@@ -185,13 +193,20 @@ static void run(window_t *w, term_t *t, char *cmd) {
         else if (!strcmp(arg, "dark")) theme_set(1, g_accent_idx);
         else { tputk(t, K_ERR, "usage: theme dark|light"); return; }
         wm_apply_theme();
+        settings_save();
     } else if (!strcmp(cmd, "wallpaper")) {
-        if (*arg >= '0' && *arg <= '3') shell_generate_wallpaper(*arg - '0');
+        if (*arg >= '0' && *arg <= '3' && !arg[1]) { shell_generate_wallpaper(*arg - '0'); settings_save(); }
         else tputk(t, K_ERR, "usage: wallpaper 0|1|2|3");
+    } else if (!strcmp(cmd, "anim")) {
+        if (!strcmp(arg, "off")) g_anim_speed_pct = 0;
+        else if (!strcmp(arg, "normal")) g_anim_speed_pct = 100;
+        else if (!strcmp(arg, "relaxed")) g_anim_speed_pct = 50;
+        else { tputk(t, K_ERR, "usage: anim off|normal|relaxed"); return; }
+        settings_save();
     } else if (!strcmp(cmd, "reboot")) {
-        reboot();
+        wm_shutdown(1);
     } else if (!strcmp(cmd, "shutdown") || !strcmp(cmd, "poweroff")) {
-        power_off();
+        wm_shutdown(0);
     } else if (!strcmp(cmd, "exit")) {
         wm_close(w);
     } else {
@@ -202,34 +217,53 @@ static void run(window_t *w, term_t *t, char *cmd) {
 static void t_init(window_t *w) {
     term_t *t = kzalloc(sizeof *t);
     w->data = t;
+    if (!t) return;
     tputk(t, K_ACC, "StreakOS Terminal");
     tputk(t, K_DIM, "Type 'help' for a list of commands.");
     tputk(t, K_OUT, "");
 }
+
+/* draw chars [c0,c1) of `line`, the first `plen` chars in the prompt colour */
+static void draw_chunk(surface_t *s, int x, int y, const char *line, int c0, int c1, int plen, uint32_t pc, uint32_t c) {
+    if (c0 < plen) x = draw_text_n(s, x, y, line + c0, MIN(c1, plen) - c0, &font_mono, pc), c0 = MIN(c1, plen);
+    if (c1 > c0) draw_text_n(s, x, y, line + c0, c1 - c0, &font_mono, c);
+}
+static int vrows(int len, int maxc) { return len <= 0 ? 1 : (len + maxc - 1) / maxc; }
 
 static void t_paint(window_t *w, surface_t *s) {
     term_t *t = w->data;
     theme_t *th = &g_theme;
     uint32_t bg = th->dark ? RGB(0x12, 0x12, 0x16) : RGB(0xFF, 0xFF, 0xFF);
     fill_rect(s, mkrect(0, 0, s->w, s->h), bg);
-    int lh = font_mono.height + 2;
-    int rows = (s->h - 16) / lh;
-    int total = t->n + 1;
-    int first = MAX(0, total - rows - t->scroll);
-    int y = 8;
+    int lh = font_mono.height + 2, cw = font_mono.g[0].adv;
+    int maxc = MAX(8, (s->w - 24) / cw);
+    int visible = MAX(1, (s->h - 16) / lh);
+    char inl[TC + 32];
+    int plen = (int)strlen(PROMPT);
+    ksnprintf(inl, sizeof inl, "%s%s", PROMPT, t->in);
+    int inlen = (int)strlen(inl);
+    int inrows = inlen / maxc + 1; /* always leaves room for the caret */
+    int total = inrows;
+    for (int i = 0; i < t->n; i++) total += vrows((int)strlen(t->lines[i]), maxc);
+    t->scroll = CLAMP(t->scroll, 0, MAX(0, total - visible));
+    int first = MAX(0, total - visible - t->scroll);
     uint32_t col[5] = {th->text, th->text, th->dark ? RGB(0xFF, 0x6B, 0x6B) : RGB(0xC4, 0x2B, 0x1C), th->accent, th->text_dim};
-    for (int i = first; i < total && y + lh <= s->h; i++, y += lh) {
-        if (i < t->n) {
-            if (t->kind[i] == K_CMD) {
-                int x = draw_text(s, 12, y, PROMPT, &font_mono, th->accent);
-                draw_text(s, x, y, t->lines[i] + strlen(PROMPT), &font_mono, th->text);
-            } else draw_text(s, 12, y, t->lines[i], &font_mono, col[t->kind[i]]);
-        } else {
-            int x = draw_text(s, 12, y, PROMPT, &font_mono, th->accent);
-            draw_text(s, x, y, t->in, &font_mono, th->text);
-            if (t->blink_on && w == wm_focused()) {
-                int cx = x + text_width_n(t->in, t->cur, &font_mono);
-                fill_rect(s, mkrect(cx, y + 1, 2, font_mono.height - 2), th->accent);
+    int r = 0;
+    for (int i = 0; i <= t->n && r < first + visible; i++) {
+        const char *line = i < t->n ? t->lines[i] : inl;
+        int len = i < t->n ? (int)strlen(line) : inlen;
+        int kind = i < t->n ? t->kind[i] : K_CMD;
+        int pl = kind == K_CMD ? plen : 0;
+        int rows = i < t->n ? vrows(len, maxc) : inrows;
+        if (r + rows <= first) { r += rows; continue; }
+        for (int k = 0; k < rows; k++, r++) {
+            if (r < first || r >= first + visible) continue;
+            int y = 8 + (r - first) * lh;
+            int c0 = k * maxc, c1 = MIN(len, c0 + maxc);
+            draw_chunk(s, 12, y, line, c0, c1, pl, th->accent, col[kind]);
+            if (i == t->n && t->blink_on && w == wm_focused()) {
+                int pos = plen + t->cur;
+                if (pos / maxc == k) fill_rect(s, mkrect(12 + (pos % maxc) * cw, y + 1, 2, font_mono.height - 2), th->accent);
             }
         }
     }
@@ -240,7 +274,19 @@ static void t_key(window_t *w, key_event_t *e) {
     int k = e->key;
     t->blink_on = 1;
     t->blink_at = ticks_ms();
-    if ((e->mods & MOD_CTRL) && (k == 'l' || k == 'L')) { t->n = 0; }
+    if ((e->mods & MOD_CTRL) && (k == 'v' || k == 'V')) {
+        size_t len;
+        const char *c = clipboard_get(&len);
+        for (size_t i = 0; i < len && t->len < TC - 2; i++) {
+            char ch = c[i] == '\n' || c[i] == '\t' ? ' ' : c[i];
+            if (ch < 32 || ch > 126) continue;
+            memmove(t->in + t->cur + 1, t->in + t->cur, t->len - t->cur + 1);
+            t->in[t->cur++] = ch;
+            t->len++;
+        }
+        t->scroll = 0;
+    }
+    else if ((e->mods & MOD_CTRL) && (k == 'l' || k == 'L')) { t->n = 0; }
     else if ((e->mods & MOD_CTRL) && (k == 'c' || k == 'C')) { char b[TC + 20]; ksnprintf(b, sizeof b, "%s%s^C", PROMPT, t->in); tputk(t, K_CMD, b); t->len = t->cur = 0; t->in[0] = 0; }
     else if (k == KEY_ENTER) {
         char line[TC + 20];
@@ -264,7 +310,7 @@ static void t_key(window_t *w, key_event_t *e) {
     else if (k == KEY_RIGHT) { if (t->cur < t->len) t->cur++; }
     else if (k == KEY_HOME) t->cur = 0;
     else if (k == KEY_END) t->cur = t->len;
-    else if (k == KEY_PGUP) t->scroll = MIN(t->scroll + 10, t->n);
+    else if (k == KEY_PGUP) t->scroll += 10;
     else if (k == KEY_PGDN) t->scroll = MAX(t->scroll - 10, 0);
     else if (k == KEY_UP || k == KEY_DOWN) {
         if (k == KEY_UP && t->hpos > 0) t->hpos--;
@@ -285,7 +331,8 @@ static void t_key(window_t *w, key_event_t *e) {
                 t->len = t->cur = strlen(t->in);
             }
         }
-    } else if (k >= 32 && k < 127 && t->len < TC - 2) {
+    } else if (k >= 32 && k < 127 && !(e->mods & (MOD_CTRL | MOD_ALT)) && t->len < TC - 2) {
+        t->scroll = 0;
         memmove(t->in + t->cur + 1, t->in + t->cur, t->len - t->cur + 1);
         t->in[t->cur++] = (char)k;
         t->len++;
@@ -297,7 +344,7 @@ static void t_mouse(window_t *w, int x, int y, int b, int ev, int wheel) {
     (void)x; (void)y; (void)b;
     term_t *t = w->data;
     if (ev == ME_WHEEL) {
-        t->scroll = CLAMP(t->scroll - wheel * 3, 0, t->n);
+        t->scroll = MAX(0, t->scroll - wheel * 3); /* upper bound is applied when painting */
         wm_invalidate(w);
     }
 }
