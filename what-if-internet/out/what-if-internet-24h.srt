@@ -1,0 +1,183 @@
+1
+00:00:01,000 --> 00:00:11,633
+Right now, as you watch this, data is racing around the planet. Through cables on the ocean floor, between giant data centers, from cell towers to the phone in your hand.
+
+2
+00:00:12,500 --> 00:00:19,467
+More than five billion people use the internet. It moves our money, our medicine, our maps, and our messages.
+
+3
+00:00:20,333 --> 00:00:25,000
+So what would happen if, at midnight, all of it simply stopped, for twenty-four hours?
+
+4
+00:00:31,633 --> 00:00:36,267
+First, a reality check. The internet is not one machine with an off switch.
+
+5
+00:00:37,133 --> 00:00:46,333
+It's a network of networks. More than seventy thousand independent systems, run by phone companies, universities, cloud providers, and governments.
+
+6
+00:00:47,200 --> 00:00:58,767
+They hand traffic to each other at internet exchange points, and they agree on routes using a protocol called B G P. Think of it as the internet's shared map of how to get from here to there.
+
+7
+00:00:59,633 --> 00:01:10,133
+Between continents, the vast majority of that traffic travels through hundreds of submarine cables. In the deep ocean, many of them are about as thick as a garden hose.
+
+8
+00:01:11,000 --> 00:01:20,600
+Switching all of this off at once would be nearly impossible. So think of this episode as a thought experiment, built on what real outages have already taught us.
+
+9
+00:01:22,900 --> 00:01:34,067
+Midnight, Coordinated Universal Time. It's nine in the morning in Tokyo and early evening in New York. Then the global routes vanish, and every network becomes an island.
+
+10
+00:01:34,933 --> 00:01:42,800
+In the first few seconds, almost nobody notices. Then messages stop sending. Videos freeze. Apps spin, and spin.
+
+11
+00:01:43,667 --> 00:01:56,567
+Your phone still has power. And G P S still works, because satellites broadcast their signals without any help from the internet. But map tiles and live traffic won't load, unless you saved them offline.
+
+12
+00:01:57,433 --> 00:02:04,500
+And in offices and homes across the planet, millions of people do exactly the same thing. They restart the router.
+
+13
+00:02:06,800 --> 00:02:08,567
+The first big shock hits money.
+
+14
+00:02:09,433 --> 00:02:18,633
+Most card payments have to check with a bank before they're approved. Some terminals can store transactions and send them later, but only up to set limits.
+
+15
+00:02:19,500 --> 00:02:33,133
+Online banking, mobile wallets and instant transfers go dark. Many cash machines now connect over internet-based links, so they may stop dispensing too. Suddenly, cash is king, for anyone who has some.
+
+16
+00:02:34,000 --> 00:02:43,233
+Stock exchanges run on private networks, but brokers and investors depend on wider connectivity. Trading would very likely be halted.
+
+17
+00:02:44,100 --> 00:02:59,333
+How much is at stake? The world economy produces roughly one hundred and ten trillion dollars a year. That's around three hundred billion dollars every single day. Not all of that would stop, but a large share of it now depends on connected systems.
+
+18
+00:03:01,633 --> 00:03:09,533
+Airplanes don't need the internet to fly. Pilots and air traffic controllers talk by radio, and radar still watches the sky.
+
+19
+00:03:10,400 --> 00:03:18,167
+But airlines run on networks. Bookings, check-in, crew schedules, even the calculations for how to load each plane.
+
+20
+00:03:19,033 --> 00:03:31,933
+In July twenty twenty-four, a faulty update to CrowdStrike security software crashed about eight and a half million Windows computers, and thousands of flights were canceled. That wasn't even an internet outage.
+
+21
+00:03:32,800 --> 00:03:39,667
+A full shutdown would likely ground commercial schedules around the world, while planes already in the air land safely.
+
+22
+00:03:40,533 --> 00:03:55,000
+At ports and warehouses, the cargo is fine. It's the paperwork that jams. Containers, customs and trucks are all coordinated digitally, so shipments wait at the gates, and just-in-time supply chains begin to stall.
+
+23
+00:03:57,300 --> 00:04:03,633
+Here's the surprising part. Many of our most critical systems are designed to survive exactly this.
+
+24
+00:04:04,500 --> 00:04:13,567
+Power grids are largely controlled through dedicated networks, kept apart from the public internet for safety and security. The lights should stay on.
+
+25
+00:04:14,433 --> 00:04:22,667
+Water treatment works in a similar way. Pumps and valves are run by local control systems that operators can manage on site.
+
+26
+00:04:23,533 --> 00:04:35,933
+Hospitals plan for computer outages with downtime procedures. Paper charts, printed medication lists, and staff carrying lab results by hand. It's slower, and riskier, but care continues.
+
+27
+00:04:36,800 --> 00:04:48,133
+Emergency services are built with backups, but modern phone networks increasingly run on internet technology, so calls may struggle as everyone tries to reach their family at once.
+
+28
+00:04:49,000 --> 00:04:56,567
+And good old broadcast radio and television keep on transmitting. For many people, they'd become the main source of news.
+
+29
+00:04:58,867 --> 00:05:06,167
+Nine hours in, Europe is starting its working day, and a new problem becomes clear. Modern work lives in the cloud.
+
+30
+00:05:07,033 --> 00:05:19,233
+Email, shared documents, video calls, and the software that runs payroll, stock rooms and customer orders. Without a connection, many offices simply can't function, and staff may be sent home.
+
+31
+00:05:20,100 --> 00:05:29,567
+Factories with their own local control systems can keep their machines running, at least until they need new orders, new parts, or new shipping instructions.
+
+32
+00:05:31,867 --> 00:05:37,800
+We actually know something about how people cope, because internet shutdowns happen in real life.
+
+33
+00:05:38,667 --> 00:05:45,733
+In twenty eleven, during mass protests, Egypt's government cut the country off from the internet for about five days.
+
+34
+00:05:46,600 --> 00:05:57,000
+In twenty twenty-two, a volcanic eruption severed the only international cable of the Pacific nation of Tonga. It took about five weeks to fully reconnect.
+
+35
+00:05:57,867 --> 00:06:04,767
+And the digital rights group Access Now documents hundreds of government-ordered shutdowns around the world every year.
+
+36
+00:06:05,633 --> 00:06:21,900
+These events show the costs. Lost income. Families unable to reach each other. Businesses frozen. But they also show people adapting. Neighbors share news. Shopkeepers write debts in notebooks. For a while, life becomes a little more local.
+
+37
+00:06:24,200 --> 00:06:29,933
+Twenty-four hours later, the routes come back. But the internet doesn't simply flick on like a light.
+
+38
+00:06:30,800 --> 00:06:36,467
+Networks re-announce their routes, and the global map has to rebuild itself, piece by piece.
+
+39
+00:06:37,333 --> 00:06:48,800
+Then billions of devices reconnect at the same moment. Every phone syncing, every app retrying, every queued payment rushing through. Engineers call this a thundering herd.
+
+40
+00:06:49,667 --> 00:07:03,567
+When Facebook went offline for about six hours in twenty twenty-one, its engineers warned that switching everything back on at once could cause dangerous power surges in their data centers. So they brought services back gradually.
+
+41
+00:07:04,433 --> 00:07:12,633
+A global restart would be that same challenge, everywhere at once. Expect hours, maybe days, of slow services and backlogs.
+
+42
+00:07:14,933 --> 00:07:23,633
+A day without the internet wouldn't end civilization. The water would keep flowing, the lights would stay on, and planes in the air would still land.
+
+43
+00:07:24,500 --> 00:07:31,367
+But it would reveal how much of daily life rests on invisible agreements between machines, and how few of us have a plan B.
+
+44
+00:07:32,233 --> 00:07:41,267
+So maybe that's the real lesson. Keep a little cash. Save an offline map. Write down a few important phone numbers. And get to know your neighbors.
+
+45
+00:07:42,133 --> 00:07:46,767
+Because the internet is remarkably resilient. The real question is, are we?
+
+46
+00:07:47,633 --> 00:07:52,667
+Thanks for watching What If Reality. What should we imagine next? Tell us in the comments.

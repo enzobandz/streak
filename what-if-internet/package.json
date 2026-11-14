@@ -1,0 +1,33 @@
+{
+  "name": "what-if-internet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "What If Reality — What If the Entire Internet Shut Down for 24 Hours? (Remotion + Three.js documentary)",
+  "scripts": {
+    "studio": "remotion studio",
+    "assets": "node tools/build-globe.mjs && python3 tools/tts.py && python3 tools/audio.py",
+    "render:poc": "remotion render ProofOfConcept out/proof-of-concept.mp4",
+    "render": "remotion render Episode out/what-if-internet-24h.mp4",
+    "still": "remotion still",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-three/fiber": "8.17.10",
+    "@remotion/cli": "4.0.543",
+    "@remotion/three": "4.0.543",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.543",
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "@fontsource/inter": "^5.1.0",
+    "@fontsource/space-grotesk": "^5.1.0",
+    "@types/react": "18.3.12",
+    "@types/three": "0.169.0",
+    "d3-geo": "3.1.1",
+    "topojson-client": "3.1.0",
+    "typescript": "5.6.3",
+    "world-atlas": "2.0.2"
+  }
+}

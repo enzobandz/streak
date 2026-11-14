@@ -1,0 +1,658 @@
+{
+ "fps": 30,
+ "width": 1920,
+ "height": 1080,
+ "durationInFrames": 14330,
+ "scenes": [
+  {
+   "id": "coldOpen",
+   "chapter": null,
+   "clock": null,
+   "from": 0,
+   "duration": 760,
+   "lines": [
+    {
+     "id": "c1",
+     "from": 30,
+     "duration": 319,
+     "text": "Right now, as you watch this, data is racing around the planet. Through cables on the ocean floor, between giant data centers, from cell towers to the phone in your hand.",
+     "source": null,
+     "pauses": [
+      54,
+      120,
+      190,
+      246
+     ]
+    },
+    {
+     "id": "c2",
+     "from": 375,
+     "duration": 209,
+     "text": "More than five billion people use the internet. It moves our money, our medicine, our maps, and our messages.",
+     "source": "ITU Facts and Figures 2024: about 5.5 billion people online",
+     "pauses": [
+      87,
+      128,
+      156
+     ]
+    },
+    {
+     "id": "c3",
+     "from": 610,
+     "duration": 140,
+     "text": "So what would happen if, at midnight, all of it simply stopped, for twenty-four hours?",
+     "source": null,
+     "pauses": [
+      54,
+      100
+     ]
+    }
+   ]
+  },
+  {
+   "id": "title",
+   "chapter": null,
+   "clock": null,
+   "from": 760,
+   "duration": 135,
+   "lines": []
+  },
+  {
+   "id": "network",
+   "chapter": "The Network of Networks",
+   "clock": null,
+   "from": 895,
+   "duration": 1538,
+   "lines": [
+    {
+     "id": "n1",
+     "from": 54,
+     "duration": 139,
+     "text": "First, a reality check. The internet is not one machine with an off switch.",
+     "source": null,
+     "pauses": [
+      17,
+      53
+     ]
+    },
+    {
+     "id": "n2",
+     "from": 219,
+     "duration": 276,
+     "text": "It's a network of networks. More than seventy thousand independent systems, run by phone companies, universities, cloud providers, and governments.",
+     "source": "Global BGP routing table: roughly 75,000+ active autonomous systems (CIDR Report / APNIC, 2024)",
+     "pauses": [
+      50,
+      137,
+      184,
+      217
+     ]
+    },
+    {
+     "id": "n3",
+     "from": 521,
+     "duration": 347,
+     "text": "They hand traffic to each other at internet exchange points, and they agree on routes using a protocol called B G P. Think of it as the internet's shared map of how to get from here to there.",
+     "source": null,
+     "pauses": [
+      98,
+      222,
+      249
+     ]
+    },
+    {
+     "id": "n4",
+     "from": 894,
+     "duration": 315,
+     "text": "Between continents, the vast majority of that traffic travels through hundreds of submarine cables. In the deep ocean, many of them are about as thick as a garden hose.",
+     "source": "TeleGeography: ~570 active & planned submarine cable systems (2024)",
+     "pauses": [
+      35,
+      97,
+      181,
+      225
+     ]
+    },
+    {
+     "id": "n5",
+     "from": 1235,
+     "duration": 288,
+     "text": "Switching all of this off at once would be nearly impossible. So think of this episode as a thought experiment, built on what real outages have already taught us.",
+     "source": null,
+     "pauses": [
+      106,
+      167,
+      202
+     ]
+    }
+   ]
+  },
+  {
+   "id": "firstMinutes",
+   "chapter": "Hour 0 — The First Minutes",
+   "clock": 0,
+   "from": 2433,
+   "duration": 1317,
+   "lines": [
+    {
+     "id": "f1",
+     "from": 54,
+     "duration": 335,
+     "text": "Midnight, Coordinated Universal Time. It's nine in the morning in Tokyo and early evening in New York. Then the global routes vanish, and every network becomes an island.",
+     "source": null,
+     "pauses": [
+      86,
+      211,
+      272
+     ]
+    },
+    {
+     "id": "f2",
+     "from": 415,
+     "duration": 236,
+     "text": "In the first few seconds, almost nobody notices. Then messages stop sending. Videos freeze. Apps spin, and spin.",
+     "source": null,
+     "pauses": [
+      89,
+      144,
+      184
+     ]
+    },
+    {
+     "id": "f3",
+     "from": 677,
+     "duration": 387,
+     "text": "Your phone still has power. And G P S still works, because satellites broadcast their signals without any help from the internet. But map tiles and live traffic won't load, unless you saved them offline.",
+     "source": null,
+     "pauses": [
+      57,
+      122,
+      249,
+      336
+     ]
+    },
+    {
+     "id": "f4",
+     "from": 1090,
+     "duration": 212,
+     "text": "And in offices and homes across the planet, millions of people do exactly the same thing. They restart the router.",
+     "source": null,
+     "pauses": [
+      82,
+      169
+     ]
+    }
+   ]
+  },
+  {
+   "id": "money",
+   "chapter": "Hour 1 — Money Stops Moving",
+   "clock": 1,
+   "from": 3750,
+   "duration": 1645,
+   "lines": [
+    {
+     "id": "m1",
+     "from": 54,
+     "duration": 53,
+     "text": "The first big shock hits money.",
+     "source": null,
+     "pauses": []
+    },
+    {
+     "id": "m2",
+     "from": 133,
+     "duration": 276,
+     "text": "Most card payments have to check with a bank before they're approved. Some terminals can store transactions and send them later, but only up to set limits.",
+     "source": null,
+     "pauses": [
+      113,
+      222
+     ]
+    },
+    {
+     "id": "m3",
+     "from": 435,
+     "duration": 409,
+     "text": "Online banking, mobile wallets and instant transfers go dark. Many cash machines now connect over internet-based links, so they may stop dispensing too. Suddenly, cash is king, for anyone who has some.",
+     "source": null,
+     "pauses": [
+      33,
+      128,
+      240,
+      303,
+      332,
+      367
+     ]
+    },
+    {
+     "id": "m4",
+     "from": 870,
+     "duration": 277,
+     "text": "Stock exchanges run on private networks, but brokers and investors depend on wider connectivity. Trading would very likely be halted.",
+     "source": null,
+     "pauses": [
+      85,
+      204
+     ]
+    },
+    {
+     "id": "m5",
+     "from": 1173,
+     "duration": 457,
+     "text": "How much is at stake? The world economy produces roughly one hundred and ten trillion dollars a year. That's around three hundred billion dollars every single day. Not all of that would stop, but a large share of it now depends on connected systems.",
+     "source": "IMF World Economic Outlook: global GDP ≈ $110 trillion (2024)",
+     "pauses": [
+      42,
+      185,
+      298,
+      351
+     ]
+    }
+   ]
+  },
+  {
+   "id": "transport",
+   "chapter": "Hour 3 — Stuck on the Ground",
+   "clock": 3,
+   "from": 5395,
+   "duration": 1670,
+   "lines": [
+    {
+     "id": "t1",
+     "from": 54,
+     "duration": 237,
+     "text": "Airplanes don't need the internet to fly. Pilots and air traffic controllers talk by radio, and radar still watches the sky.",
+     "source": null,
+     "pauses": [
+      76,
+      176
+     ]
+    },
+    {
+     "id": "t2",
+     "from": 317,
+     "duration": 233,
+     "text": "But airlines run on networks. Bookings, check-in, crew schedules, even the calculations for how to load each plane.",
+     "source": null,
+     "pauses": [
+      61,
+      92,
+      116,
+      149
+     ]
+    },
+    {
+     "id": "t3",
+     "from": 576,
+     "duration": 387,
+     "text": "In July twenty twenty-four, a faulty update to CrowdStrike security software crashed about eight and a half million Windows computers, and thousands of flights were canceled. That wasn't even an internet outage.",
+     "source": "Microsoft, July 2024: ~8.5 million Windows devices affected",
+     "pauses": [
+      53,
+      154,
+      179,
+      251,
+      319
+     ]
+    },
+    {
+     "id": "t4",
+     "from": 989,
+     "duration": 206,
+     "text": "A full shutdown would likely ground commercial schedules around the world, while planes already in the air land safely.",
+     "source": null,
+     "pauses": [
+      121
+     ]
+    },
+    {
+     "id": "t5",
+     "from": 1221,
+     "duration": 434,
+     "text": "At ports and warehouses, the cargo is fine. It's the paperwork that jams. Containers, customs and trucks are all coordinated digitally, so shipments wait at the gates, and just-in-time supply chains begin to stall.",
+     "source": null,
+     "pauses": [
+      44,
+      91,
+      157,
+      191,
+      290,
+      348
+     ]
+    }
+   ]
+  },
+  {
+   "id": "critical",
+   "chapter": "Hour 6 — What Keeps Working",
+   "clock": 6,
+   "from": 7065,
+   "duration": 1847,
+   "lines": [
+    {
+     "id": "k1",
+     "from": 54,
+     "duration": 190,
+     "text": "Here's the surprising part. Many of our most critical systems are designed to survive exactly this.",
+     "source": null,
+     "pauses": [
+      51,
+      120
+     ]
+    },
+    {
+     "id": "k2",
+     "from": 270,
+     "duration": 272,
+     "text": "Power grids are largely controlled through dedicated networks, kept apart from the public internet for safety and security. The lights should stay on.",
+     "source": null,
+     "pauses": [
+      110,
+      223
+     ]
+    },
+    {
+     "id": "k2b",
+     "from": 568,
+     "duration": 247,
+     "text": "Water treatment works in a similar way. Pumps and valves are run by local control systems that operators can manage on site.",
+     "source": null,
+     "pauses": [
+      72,
+      179
+     ]
+    },
+    {
+     "id": "k3",
+     "from": 841,
+     "duration": 372,
+     "text": "Hospitals plan for computer outages with downtime procedures. Paper charts, printed medication lists, and staff carrying lab results by hand. It's slower, and riskier, but care continues.",
+     "source": null,
+     "pauses": [
+      119,
+      155,
+      200,
+      279,
+      335
+     ]
+    },
+    {
+     "id": "k4",
+     "from": 1239,
+     "duration": 340,
+     "text": "Emergency services are built with backups, but modern phone networks increasingly run on internet technology, so calls may struggle as everyone tries to reach their family at once.",
+     "source": null,
+     "pauses": [
+      85,
+      215
+     ]
+    },
+    {
+     "id": "k5",
+     "from": 1605,
+     "duration": 227,
+     "text": "And good old broadcast radio and television keep on transmitting. For many people, they'd become the main source of news.",
+     "source": null,
+     "pauses": [
+      82,
+      126,
+      163
+     ]
+    }
+   ]
+  },
+  {
+   "id": "work",
+   "chapter": "Hour 9 — The Office Goes Quiet",
+   "clock": 9,
+   "from": 8912,
+   "duration": 990,
+   "lines": [
+    {
+     "id": "w1",
+     "from": 54,
+     "duration": 219,
+     "text": "Nine hours in, Europe is starting its working day, and a new problem becomes clear. Modern work lives in the cloud.",
+     "source": null,
+     "pauses": [
+      35,
+      95,
+      157
+     ]
+    },
+    {
+     "id": "w2",
+     "from": 299,
+     "duration": 366,
+     "text": "Email, shared documents, video calls, and the software that runs payroll, stock rooms and customer orders. Without a connection, many offices simply can't function, and staff may be sent home.",
+     "source": null,
+     "pauses": [
+      77,
+      136,
+      207,
+      248,
+      318
+     ]
+    },
+    {
+     "id": "w3",
+     "from": 691,
+     "duration": 284,
+     "text": "Factories with their own local control systems can keep their machines running, at least until they need new orders, new parts, or new shipping instructions.",
+     "source": null,
+     "pauses": [
+      83,
+      142,
+      210,
+      237
+     ]
+    }
+   ]
+  },
+  {
+   "id": "human",
+   "chapter": "Hour 12 — The Human Side",
+   "clock": 12,
+   "from": 9902,
+   "duration": 1570,
+   "lines": [
+    {
+     "id": "h1",
+     "from": 54,
+     "duration": 178,
+     "text": "We actually know something about how people cope, because internet shutdowns happen in real life.",
+     "source": null,
+     "pauses": [
+      83,
+      135
+     ]
+    },
+    {
+     "id": "h2",
+     "from": 258,
+     "duration": 212,
+     "text": "In twenty eleven, during mass protests, Egypt's government cut the country off from the internet for about five days.",
+     "source": "Egypt, 27 Jan – 2 Feb 2011",
+     "pauses": [
+      34,
+      86
+     ]
+    },
+    {
+     "id": "h3",
+     "from": 496,
+     "duration": 312,
+     "text": "In twenty twenty-two, a volcanic eruption severed the only international cable of the Pacific nation of Tonga. It took about five weeks to fully reconnect.",
+     "source": "Hunga Tonga–Hunga Haʻapai eruption, Jan 2022; cable repaired Feb 2022",
+     "pauses": [
+      40,
+      159,
+      225
+     ]
+    },
+    {
+     "id": "h4",
+     "from": 834,
+     "duration": 207,
+     "text": "And the digital rights group Access Now documents hundreds of government-ordered shutdowns around the world every year.",
+     "source": "Access Now #KeepItOn: 296 shutdowns in 54 countries (2024)",
+     "pauses": [
+      59,
+      161
+     ]
+    },
+    {
+     "id": "h5",
+     "from": 1067,
+     "duration": 488,
+     "text": "These events show the costs. Lost income. Families unable to reach each other. Businesses frozen. But they also show people adapting. Neighbors share news. Shopkeepers write debts in notebooks. For a while, life becomes a little more local.",
+     "source": null,
+     "pauses": [
+      52,
+      91,
+      162,
+      210,
+      279,
+      326,
+      398
+     ]
+    }
+   ]
+  },
+  {
+   "id": "restart",
+   "chapter": "Hour 24 — Switching It Back On",
+   "clock": 24,
+   "from": 11472,
+   "duration": 1522,
+   "lines": [
+    {
+     "id": "r1",
+     "from": 54,
+     "duration": 172,
+     "text": "Twenty-four hours later, the routes come back. But the internet doesn't simply flick on like a light.",
+     "source": null,
+     "pauses": [
+      44,
+      86
+     ]
+    },
+    {
+     "id": "r2",
+     "from": 252,
+     "duration": 170,
+     "text": "Networks re-announce their routes, and the global map has to rebuild itself, piece by piece.",
+     "source": null,
+     "pauses": [
+      62,
+      135
+     ]
+    },
+    {
+     "id": "r3",
+     "from": 448,
+     "duration": 344,
+     "text": "Then billions of devices reconnect at the same moment. Every phone syncing, every app retrying, every queued payment rushing through. Engineers call this a thundering herd.",
+     "source": null,
+     "pauses": [
+      102,
+      152,
+      199,
+      270
+     ]
+    },
+    {
+     "id": "r4",
+     "from": 818,
+     "duration": 417,
+     "text": "When Facebook went offline for about six hours in twenty twenty-one, its engineers warned that switching everything back on at once could cause dangerous power surges in their data centers. So they brought services back gradually.",
+     "source": "Meta Engineering, 5 Oct 2021",
+     "pauses": [
+      120,
+      232,
+      343,
+      395
+     ]
+    },
+    {
+     "id": "r5",
+     "from": 1261,
+     "duration": 246,
+     "text": "A global restart would be that same challenge, everywhere at once. Expect hours, maybe days, of slow services and backlogs.",
+     "source": null,
+     "pauses": [
+      77,
+      119,
+      162
+     ]
+    }
+   ]
+  },
+  {
+   "id": "outro",
+   "chapter": "What We'd Learn",
+   "clock": null,
+   "from": 12994,
+   "duration": 1336,
+   "lines": [
+    {
+     "id": "o1",
+     "from": 54,
+     "duration": 261,
+     "text": "A day without the internet wouldn't end civilization. The water would keep flowing, the lights would stay on, and planes in the air would still land.",
+     "source": null,
+     "pauses": [
+      92,
+      147,
+      193
+     ]
+    },
+    {
+     "id": "o2",
+     "from": 341,
+     "duration": 206,
+     "text": "But it would reveal how much of daily life rests on invisible agreements between machines, and how few of us have a plan B.",
+     "source": null,
+     "pauses": [
+      148
+     ]
+    },
+    {
+     "id": "o3",
+     "from": 573,
+     "duration": 271,
+     "text": "So maybe that's the real lesson. Keep a little cash. Save an offline map. Write down a few important phone numbers. And get to know your neighbors.",
+     "source": null,
+     "pauses": [
+      58,
+      99,
+      150,
+      225
+     ]
+    },
+    {
+     "id": "o4",
+     "from": 870,
+     "duration": 139,
+     "text": "Because the internet is remarkably resilient. The real question is, are we?",
+     "source": null,
+     "pauses": [
+      79
+     ]
+    },
+    {
+     "id": "o5",
+     "from": 1035,
+     "duration": 151,
+     "text": "Thanks for watching What If Reality. What should we imagine next? Tell us in the comments.",
+     "source": null,
+     "pauses": [
+      61,
+      111
+     ]
+    }
+   ]
+  }
+ ]
+}
