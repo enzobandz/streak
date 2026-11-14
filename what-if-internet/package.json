@@ -2,14 +2,15 @@
   "name": "what-if-internet",
   "version": "1.0.0",
   "private": true,
-  "description": "What If Reality — What If the Entire Internet Shut Down for 24 Hours? (Remotion + Three.js documentary)",
+  "description": "What If Reality \u2014 What If the Entire Internet Shut Down for 24 Hours? (Remotion + Three.js documentary)",
   "scripts": {
     "studio": "remotion studio",
     "assets": "node tools/build-globe.mjs && python3 tools/tts.py && python3 tools/audio.py",
     "render:poc": "remotion render ProofOfConcept out/proof-of-concept.mp4",
     "render": "remotion render Episode out/what-if-internet-24h.mp4",
     "still": "remotion still",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "render:full": "bash tools/render.sh"
   },
   "dependencies": {
     "@react-three/fiber": "8.17.10",
