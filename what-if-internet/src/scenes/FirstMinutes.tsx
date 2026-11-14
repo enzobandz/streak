@@ -171,12 +171,13 @@ const ShotGPS: React.FC<{L: LinesT; base: number; dur: number}> = ({L, base, dur
         bg="#0d1840"
         cam={[
           {f: 0, pos: [1.5, 1.6, 7], target: [-0.6, 1.5, 0], fov: 40},
-          {f: p[1] - 10, pos: [2.5, 0.9, 13], target: [-0.5, 6, -3], fov: 55},
-          {f: p[2], pos: [3.5, 0.9, 14], target: [-0.5, 6, -3], fov: 55},
-          {f: dur, pos: [3.8, 1.2, 15], target: [-0.5, 5.5, -3], fov: 55},
+          {f: p[1] - 10, pos: [2.2, 0.8, 8], target: [-0.6, 5, -4], fov: 58},
+          {f: p[2], pos: [2.8, 0.9, 8.6], target: [-0.6, 5, -4], fov: 58},
+          {f: dur, pos: [3, 1.1, 9], target: [-0.6, 4.6, -4], fov: 58},
         ]}
       >
-        <Lights intensity={0.7} sky="#9fb8ff" ground="#2a3050" sunPos={[4, 10, 8]} />
+        <Lights intensity={1.1} sky="#9fb8ff" ground="#2a3050" sunPos={[4, 10, 8]} />
+        <pointLight position={[0, 6, 2]} intensity={60} color="#cfe0ff" />
         <Stars count={900} />
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[30, 48]} />
@@ -191,7 +192,7 @@ const ShotGPS: React.FC<{L: LinesT; base: number; dur: number}> = ({L, base, dur
           const pos: [number, number, number] = [sp[0] + Math.sin(f * 0.01 + i) * 0.6, sp[1], sp[2]];
           return (
             <group key={i}>
-              <Satellite position={pos} rotation={[0.3, f * 0.004 + i, 0.2]} scale={0.9} />
+              <Satellite position={pos} rotation={[0.3, f * 0.004 + i, 0.2]} scale={1.6} />
               {[0, 1, 2].map((k) => {
                 const t = (f * 0.02 + k / 3 + i * 0.2) % 1;
                 const target = [-0.7, 1.5, 0.2];

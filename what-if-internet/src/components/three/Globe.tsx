@@ -199,14 +199,14 @@ export const Globe: React.FC<{
           const p = latLon(mk.lat, mk.lon, R * 1.006);
           const ring = (frame * 0.025 + i * 0.3) % 1;
           return (
-            <group key={i} position={p} onUpdate={(g) => g.lookAt(p.clone().multiplyScalar(2))}>
+            <group key={i} position={p} quaternion={new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), p.clone().normalize())}>
               <mesh>
                 <circleGeometry args={[0.04 * (mk.size ?? 1), 20]} />
-                <meshBasicMaterial color={mk.color} toneMapped={false} transparent opacity={mk.strength} />
+                <meshBasicMaterial color={mk.color} toneMapped={false} transparent opacity={mk.strength} side={THREE.DoubleSide} />
               </mesh>
               <mesh scale={1 + ring * 3}>
                 <ringGeometry args={[0.05 * (mk.size ?? 1), 0.062 * (mk.size ?? 1), 32]} />
-                <meshBasicMaterial color={mk.color} toneMapped={false} transparent opacity={mk.strength * (1 - ring)} />
+                <meshBasicMaterial color={mk.color} toneMapped={false} transparent opacity={mk.strength * (1 - ring)} side={THREE.DoubleSide} />
               </mesh>
             </group>
           );

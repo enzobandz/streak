@@ -290,7 +290,7 @@ export const Headline: React.FC<{text: string; sub?: string; at?: number; until?
   return (
     <div style={{position: 'absolute', left: center ? 0 : x, right: center ? 0 : undefined, top: y, textAlign: center ? 'center' : 'left', opacity: o}}>
       <div style={{fontFamily: FONT_HEAD, fontWeight: 700, fontSize: size, color, lineHeight: 1.05, transform: `translateY(${(1 - p) * 24}px)`, textShadow: '0 6px 30px rgba(0,0,0,0.6)'}}>{text}</div>
-      {sub ? <div style={{fontFamily: FONT_BODY, fontWeight: 400, fontSize: size * 0.4, color: C.mist, marginTop: 14, textShadow: '0 3px 14px rgba(0,0,0,0.8)'}}>{sub}</div> : null}
+      {sub ? <div style={{fontFamily: FONT_BODY, fontWeight: 400, fontSize: size * 0.4, color: C.white, opacity: 0.9, marginTop: 14, textShadow: '0 3px 14px rgba(0,0,0,0.8)'}}>{sub}</div> : null}
     </div>
   );
 };
